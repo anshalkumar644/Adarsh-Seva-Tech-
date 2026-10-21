@@ -178,15 +178,26 @@
                             1. फ़ाइल या फ़ोटो चुनें <span class="text-rose-500">*</span>
                         </label>
                         
-                        <div onclick="document.getElementById('fileUploadInput').click()" 
+                        <!-- Visible Trigger Button & Dropzone -->
+                        <div id="dropZoneArea" onclick="document.getElementById('fileUploadInput').click()" 
                             class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50/70 hover:bg-brand-50/30 rounded-2xl p-6 text-center cursor-pointer transition group">
+                            
+                            <!-- File Input element -->
                             <input type="file" id="fileUploadInput" accept=".pdf,image/*,.doc,.docx,.txt" class="hidden" onchange="handleFileSelected(event)">
                             
                             <div class="w-14 h-14 rounded-2xl bg-white shadow-sm border border-slate-200 text-brand-600 group-hover:scale-110 flex items-center justify-center text-2xl mx-auto transition">
                                 <i class="fa-solid fa-cloud-arrow-up"></i>
                             </div>
                             <h4 id="fileUploadName" class="text-sm font-bold text-slate-800 mt-3">फ़ाइल चुनने के लिए यहाँ क्लिक करें (PDF / Image)</h4>
-                            <p class="text-xs text-slate-400 mt-1">PDF, JPG, PNG (ऑटोमैटिक पेज डिटेक्शन)</p>
+                            <p class="text-xs text-slate-400 mt-1">PDF, JPG, JPEG, PNG (ऑटोमैटिक पेज डिटेक्शन)</p>
+                            
+                            <div class="mt-3">
+                                <button type="button" onclick="event.stopPropagation(); document.getElementById('fileUploadInput').click();" 
+                                    class="px-4 py-1.5 bg-brand-50 text-brand-700 hover:bg-brand-100 font-bold text-xs rounded-xl border border-brand-200 inline-flex items-center gap-1.5 transition">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    <span>फ़ाइल ब्राउज़ करें</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Uploaded Preview Card -->
@@ -375,12 +386,12 @@
                                 </summary>
                                 <div class="pt-3 space-y-2">
                                     <p class="text-[11px] text-slate-500 leading-relaxed">
-                                        यदि आपने काउंटर पर दुकानदार को नकद पैसे दे दिए हैं, तो दुकानदार से कहें कि वे इसे अपने डैशबोर्ड से वेरिफाई करें:
+                                        यदि आपने काउंटर पर दुकानदार को नकद पैसे दे दिए हैं, तो आप सीधे प्रिंट ऑर्डर दर्ज कर सकते हैं:
                                     </p>
                                     <button type="button" onclick="confirmManualCashPayment()" 
                                         class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition flex items-center justify-center gap-1.5">
                                         <i class="fa-solid fa-money-bill-wave text-emerald-600"></i>
-                                        <span>नकद भुगतान सबमिट करें</span>
+                                        <span>नकद भुगतान ऑर्डर सबमिट करें</span>
                                     </button>
                                 </div>
                             </details>
@@ -395,7 +406,7 @@
         <!-- ============================================== -->
         <section id="viewAdmin" class="hidden space-y-8 transition-all duration-300">
             
-            <!-- Subscription Expiration Alert Banner (If in trial or near expiry) -->
+            <!-- Subscription Expiration Alert Banner -->
             <div id="subscriptionStatusBanner" class="p-4 sm:p-5 rounded-3xl border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-300">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-lg shrink-0">
@@ -1449,237 +1460,6 @@
     <!-- Hidden Print Execution Iframe -->
     <iframe id="printExecutionIframe" class="w-0 h-0 border-0 absolute -left-[9999px] -top-[9999px]"></iframe>
 
-    <!-- Firebase SDK (ES Module) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBbSgGbxLHhpzx7DbasW6-34aO2Ju5ltfw",
-            authDomain: "adarsh-seva-tech-47c97.firebaseapp.com",
-            projectId: "adarsh-seva-tech-47c97",
-            storageBucket: "adarsh-seva-tech-47c97.firebasestorage.app",
-            messagingSenderId: "439383650935",
-            appId: "1:439383650935:web:c54f588c80c4ca85590c72"
-        };
-
-        let app = null;
-        let auth = null;
-        let db = null;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.warn("Cloud Init note:", e);
-        }
-
-        let unsubShopListener = null;
-        let unsubOrdersListener = null;
-
-        async function initCloudModule() {
-            if (!app || !auth || !db) return;
-            try {
-                if (!auth.currentUser) {
-                    await signInAnonymously(auth);
-                }
-                window.appState.cloudAuthReady = true;
-                window.appState.cloudConnected = true;
-
-                if (window.appState.dukandarAuth.isLoggedIn) {
-                    window.attachShopDataListeners(window.appState.dukandarAuth.myShopCode);
-                } else if (window.appState.customerSession.verified) {
-                    window.attachShopDataListeners(window.appState.customerSession.enteredShopCode);
-                }
-            } catch (err) {
-                console.warn("Cloud Auth Note:", err);
-            }
-        }
-
-        window.attachShopDataListeners = function(shopCode) {
-            if (!shopCode) return;
-            shopCode = String(shopCode).trim();
-            window.appState.activeShopCode = shopCode;
-            window.appState.shop.shopCode = shopCode;
-
-            if (unsubShopListener) unsubShopListener();
-            if (unsubOrdersListener) unsubOrdersListener();
-
-            // Load shop local cache first
-            try {
-                const cachedShop = localStorage.getItem(`ask_shop_${shopCode}_config`);
-                if (cachedShop) {
-                    const parsed = JSON.parse(cachedShop);
-                    if (parsed.shop) window.appState.shop = { ...window.appState.shop, ...parsed.shop };
-                    if (parsed.rates) window.appState.rates = { ...window.appState.rates, ...parsed.rates };
-                    if (parsed.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...parsed.cashfree };
-                    if (parsed.printers) window.appState.printers = { ...window.appState.printers, ...parsed.printers };
-                    syncUiFromState(false);
-                }
-                const cachedOrders = localStorage.getItem(`ask_shop_${shopCode}_orders`);
-                if (cachedOrders) {
-                    window.appState.orders = JSON.parse(cachedOrders);
-                    if (typeof renderOrdersTable === 'function') renderOrdersTable();
-                    if (typeof updateStatsUI === 'function') updateStatsUI();
-                }
-            } catch (e) {}
-
-            if (!db || !window.appState.cloudAuthReady) return;
-
-            // Listen exclusively to THIS SHOP's config
-            const shopDocRef = doc(db, 'shops', shopCode);
-            unsubShopListener = onSnapshot(shopDocRef, (snap) => {
-                if (snap.exists()) {
-                    const data = snap.data();
-                    if (data.shop) window.appState.shop = { ...window.appState.shop, ...data.shop };
-                    if (data.rates) window.appState.rates = { ...window.appState.rates, ...data.rates };
-                    if (data.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...data.cashfree };
-                    if (data.printers) window.appState.printers = { ...window.appState.printers, ...data.printers };
-                    
-                    try {
-                        localStorage.setItem(`ask_shop_${shopCode}_config`, JSON.stringify({
-                            shop: window.appState.shop,
-                            rates: window.appState.rates,
-                            cashfree: window.appState.cashfree,
-                            printers: window.appState.printers
-                        }));
-                    } catch (e) {}
-                    syncUiFromState(false);
-                }
-            }, (err) => console.warn(`Shop ${shopCode} sync:`, err));
-
-            // Listen exclusively to THIS SHOP's orders subcollection
-            const ordersColRef = collection(db, 'shops', shopCode, 'orders');
-            unsubOrdersListener = onSnapshot(ordersColRef, (snapshot) => {
-                const fetched = [];
-                snapshot.forEach((docSnap) => fetched.push({ _docId: docSnap.id, ...docSnap.data() }));
-                fetched.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-                window.appState.orders = fetched;
-                try {
-                    localStorage.setItem(`ask_shop_${shopCode}_orders`, JSON.stringify(fetched));
-                } catch (e) {}
-                if (typeof renderOrdersTable === 'function') renderOrdersTable();
-                if (typeof updateStatsUI === 'function') updateStatsUI();
-            }, (err) => console.warn(`Shop ${shopCode} orders sync:`, err));
-        };
-
-        window.fetchShopByCode = async function(shopCode) {
-            shopCode = String(shopCode).trim();
-            const accounts = getDukandarAccounts();
-            for (let ph in accounts) {
-                if (String(accounts[ph].shopCode) === shopCode) {
-                    return {
-                        shop: {
-                            name: accounts[ph].shopName,
-                            owner: accounts[ph].ownerName,
-                            phone: accounts[ph].phone,
-                            address: accounts[ph].address,
-                            shopCode: shopCode,
-                            isOpen: accounts[ph].isOpen !== false,
-                            autoPrint: true
-                        },
-                        rates: accounts[ph].rates || window.appState.rates,
-                        cashfree: accounts[ph].cashfree || window.appState.cashfree,
-                        printers: accounts[ph].printers || window.appState.printers,
-                        subscription: accounts[ph].subscription || null
-                    };
-                }
-            }
-
-            if (shopCode === "1042") {
-                return {
-                    shop: { ...window.appState.shop, shopCode: "1042" },
-                    rates: { ...window.appState.rates },
-                    cashfree: { ...window.appState.cashfree },
-                    printers: { ...window.appState.printers }
-                };
-            }
-
-            if (db && window.appState.cloudAuthReady) {
-                try {
-                    const shopDocRef = doc(db, 'shops', shopCode);
-                    const snap = await getDoc(shopDocRef);
-                    if (snap.exists()) return snap.data();
-                } catch (err) {}
-            }
-            return null;
-        };
-
-        window.saveSettingsToCloud = async function() {
-            const shopCode = String(window.appState.shop.shopCode || window.appState.activeShopCode || "1042").trim();
-            const payload = {
-                shop: { ...window.appState.shop, shopCode: shopCode },
-                rates: { ...window.appState.rates },
-                cashfree: { ...window.appState.cashfree },
-                printers: { ...window.appState.printers }
-            };
-
-            try {
-                localStorage.setItem(`ask_shop_${shopCode}_config`, JSON.stringify(payload));
-                const accounts = getDukandarAccounts();
-                const curPhone = window.appState.dukandarAuth.currentPhone;
-                if (curPhone && accounts[curPhone]) {
-                    accounts[curPhone].shopName = window.appState.shop.name;
-                    accounts[curPhone].rates = window.appState.rates;
-                    accounts[curPhone].cashfree = window.appState.cashfree;
-                    accounts[curPhone].printers = window.appState.printers;
-                    saveDukandarAccounts(accounts);
-                }
-            } catch (e) {}
-
-            if (db && window.appState.cloudAuthReady) {
-                try {
-                    const ref = doc(db, 'shops', shopCode);
-                    await setDoc(ref, payload, { merge: true });
-                    showToast(`दुकान (#${shopCode}) सेटिंग्स सुरक्षित हो गईं!`, "success");
-                } catch (err) {
-                    showToast("सेटिंग्स सुरक्षित हैं!", "success");
-                }
-            } else {
-                showToast("सेटिंग्स सुरक्षित हैं!", "success");
-            }
-        };
-
-        window.createOrderInCloud = async function(orderObj) {
-            const shopCode = String(window.appState.activeShopCode || "1042").trim();
-            const enrichedOrder = { ...orderObj, shopCode: shopCode, timestamp: Date.now() };
-
-            if (db && window.appState.cloudAuthReady) {
-                try {
-                    const col = collection(db, 'shops', shopCode, 'orders');
-                    const added = await addDoc(col, enrichedOrder);
-                    enrichedOrder._docId = added.id;
-                } catch (err) {}
-            }
-
-            window.appState.orders.unshift(enrichedOrder);
-            try {
-                localStorage.setItem(`ask_shop_${shopCode}_orders`, JSON.stringify(window.appState.orders));
-            } catch (e) {}
-            if (typeof renderOrdersTable === 'function') renderOrdersTable();
-            if (typeof updateStatsUI === 'function') updateStatsUI();
-            return true;
-        };
-
-        window.updateOrderStatusInCloud = async function(docId, newStatus) {
-            const shopCode = String(window.appState.activeShopCode || "1042").trim();
-            if (!db || !window.appState.cloudAuthReady || !docId) return false;
-            try {
-                const ref = doc(db, 'shops', shopCode, 'orders', docId);
-                await updateDoc(ref, { status: newStatus });
-                return true;
-            } catch (err) {
-                return false;
-            }
-        };
-
-        window.addEventListener('load', () => {
-            initCloudModule();
-        });
-    </script>
-
     <!-- Core Application Logic (Vanilla JavaScript) -->
     <script>
         const SHOP_BASE_PORTAL_URL = "https://anshalkumar644.github.io/Adarsh-Seva-Tech-/";
@@ -1754,6 +1534,785 @@
         let subscriptionTimerInterval = null;
 
         // ==============================================
+        // TECHNICIAN FIX 1: PRINTER BRAND & MODEL SELECTION
+        // ==============================================
+        const PRINTER_PRESETS = {
+            bw: {
+                "HP": ["HP LaserJet M1005 MFP", "HP LaserJet Pro P1108", "HP Neverstop Laser 1000w", "HP LaserJet 1020 Plus"],
+                "Canon": ["Canon imageCLASS LBP2900B", "Canon LBP6030W", "Canon MF3010 Digital Multifunction"],
+                "Brother": ["Brother DCP-L2540DW", "Brother HL-L2321D", "Brother DCP-B7500D"],
+                "Epson": ["Epson M200 All-in-One", "Epson EcoTank M1100", "Epson EcoTank M2140"]
+            },
+            color: {
+                "Epson": ["Epson EcoTank L3210 Series", "Epson EcoTank L3150 Wi-Fi", "Epson EcoTank L8050 Photo", "Epson L4260 Duplex"],
+                "Canon": ["Canon PIXMA G3010 All-in-One", "Canon MegaTank G2020", "Canon PIXMA G3000"],
+                "HP": ["HP Smart Tank 580 All-in-One", "HP Smart Tank 515", "HP Ink Tank 415"],
+                "Brother": ["Brother DCP-T420W", "Brother DCP-T520W", "Brother DCP-T820DW"]
+            }
+        };
+
+        window.openPrinterSetupModal = function() {
+            const modal = document.getElementById('printerSetupModal');
+            if (!modal) return;
+            
+            const bwBrandEl = document.getElementById('printerBwBrand');
+            const bwModelEl = document.getElementById('printerBwModel');
+            const colorBrandEl = document.getElementById('printerColorBrand');
+            const colorModelEl = document.getElementById('printerColorModel');
+
+            if (bwBrandEl) bwBrandEl.value = window.appState.printers.bwBrand || "HP";
+            if (bwModelEl) bwModelEl.value = window.appState.printers.bwModel || "HP LaserJet M1005 MFP";
+            if (colorBrandEl) colorBrandEl.value = window.appState.printers.colorBrand || "Epson";
+            if (colorModelEl) colorModelEl.value = window.appState.printers.colorModel || "Epson EcoTank L3210 Series";
+
+            modal.classList.remove('hidden');
+        };
+
+        window.closePrinterSetupModal = function() {
+            const modal = document.getElementById('printerSetupModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.autoFillModelSuggestions = function(type) {
+            if (type === 'bw') {
+                const brand = document.getElementById('printerBwBrand').value;
+                const modelInp = document.getElementById('printerBwModel');
+                const list = PRINTER_PRESETS.bw[brand] || [];
+                if (list.length > 0 && modelInp) {
+                    modelInp.value = list[0];
+                }
+            } else if (type === 'color') {
+                const brand = document.getElementById('printerColorBrand').value;
+                const modelInp = document.getElementById('printerColorModel');
+                const list = PRINTER_PRESETS.color[brand] || [];
+                if (list.length > 0 && modelInp) {
+                    modelInp.value = list[0];
+                }
+            }
+        };
+
+        window.handleSavePrinterConfig = function(e) {
+            if (e) e.preventDefault();
+            const bwBrand = document.getElementById('printerBwBrand').value;
+            const bwModel = (document.getElementById('printerBwModel').value || '').trim();
+            const colorBrand = document.getElementById('printerColorBrand').value;
+            const colorModel = (document.getElementById('printerColorModel').value || '').trim();
+
+            if (!bwModel || !colorModel) {
+                showToast("कृपया दोनों प्रिंटर मॉडल का नाम दर्ज करें!", "error");
+                return;
+            }
+
+            window.appState.printers.bwBrand = bwBrand;
+            window.appState.printers.bwModel = bwModel;
+            window.appState.printers.colorBrand = colorBrand;
+            window.appState.printers.colorModel = colorModel;
+
+            const activeBw = document.getElementById('adminActiveBwPrinter');
+            if (activeBw) activeBw.textContent = bwModel;
+
+            if (window.saveSettingsToCloud) {
+                window.saveSettingsToCloud();
+            }
+
+            closePrinterSetupModal();
+            playChimeSound('success');
+            showToast(`प्रिंटर कॉन्फ़िगरेशन सुरक्षित: ${bwModel} & ${colorModel}`, "success");
+        };
+
+        // ==============================================
+        // TECHNICIAN FIX 2: BULLETPROOF QR CODE GENERATOR
+        // ==============================================
+        window.openShopQrModal = function() {
+            const modal = document.getElementById('shopQrModal');
+            if (!modal) return;
+
+            const shopCode = String(window.appState.shop.shopCode || window.appState.activeShopCode || "1042").trim();
+            const shopName = window.appState.shop.name || "आदर्श सेवा केंद्र";
+            const ownerPhone = window.appState.shop.phone || "9117327903";
+            const ownerName = window.appState.shop.owner || "संचालक";
+            const address = window.appState.shop.address || "बिहार";
+
+            const stName = document.getElementById('standeeShopName');
+            const stPhone = document.getElementById('standeeOwnerPhone');
+            const stAddr = document.getElementById('standeeAddress');
+            const stCodeBadge = document.getElementById('standeeShopCodeBadge');
+            const stHint = document.getElementById('standeeCodeHint');
+
+            if (stName) stName.textContent = shopName;
+            if (stPhone) stPhone.textContent = `संचालक: ${ownerName} • मो: ${ownerPhone}`;
+            if (stAddr) stAddr.textContent = `पता: ${address}`;
+            if (stCodeBadge) stCodeBadge.textContent = shopCode;
+            if (stHint) stHint.textContent = shopCode;
+
+            const qrContainer = document.getElementById('shopStandeeQrCode');
+            if (qrContainer) {
+                qrContainer.innerHTML = '';
+                const cleanUrl = SHOP_BASE_PORTAL_URL;
+
+                let qrRendered = false;
+                if (typeof QRCode !== 'undefined') {
+                    try {
+                        new QRCode(qrContainer, {
+                            text: cleanUrl,
+                            width: 200,
+                            height: 200,
+                            colorDark: "#090d16",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                        qrRendered = true;
+                    } catch (err) {
+                        console.warn("QRCodeJS library fallback:", err);
+                    }
+                }
+
+                if (!qrRendered) {
+                    const fallbackImg = document.createElement('img');
+                    fallbackImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(cleanUrl)}&margin=1`;
+                    fallbackImg.alt = "Shop Standee QR Code";
+                    fallbackImg.className = "w-[200px] h-[200px] object-contain mx-auto rounded-lg";
+                    qrContainer.appendChild(fallbackImg);
+                }
+            }
+
+            modal.classList.remove('hidden');
+        };
+
+        window.closeShopQrModal = function() {
+            const modal = document.getElementById('shopQrModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.printShopStandee = function() {
+            const shopCode = window.appState.shop.shopCode || "1042";
+            const shopName = window.appState.shop.name || "स्मार्ट सेवा केंद्र";
+            const owner = window.appState.shop.owner || "संचालक";
+            const phone = window.appState.shop.phone || "";
+            const address = window.appState.shop.address || "";
+            const qrCanvas = document.querySelector('#shopStandeeQrCode canvas');
+            const qrImgEl = document.querySelector('#shopStandeeQrCode img');
+            const qrSrc = qrCanvas ? qrCanvas.toDataURL('image/png') : (qrImgEl ? qrImgEl.src : '');
+
+            const standeeHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>Print Standee - Shop #${shopCode}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 10mm; }
+                        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+                        body { margin: 0; padding: 0; background: #fff; text-align: center; }
+                        .standee-card {
+                            border: 4px solid #1e1b4b;
+                            border-radius: 28px;
+                            padding: 28px 20px;
+                            min-height: 94vh;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        .header-pill {
+                            background: #4338ca;
+                            color: #fff;
+                            font-size: 14px;
+                            font-weight: 800;
+                            letter-spacing: 1px;
+                            padding: 8px 24px;
+                            border-radius: 9999px;
+                            text-transform: uppercase;
+                        }
+                        .shop-title {
+                            font-size: 36px;
+                            font-weight: 900;
+                            color: #0f172a;
+                            margin: 15px 0 5px 0;
+                        }
+                        .shop-sub {
+                            font-size: 15px;
+                            font-weight: 600;
+                            color: #475569;
+                            margin: 0;
+                        }
+                        .code-box {
+                            background: #f59e0b;
+                            color: #000;
+                            padding: 12px 28px;
+                            border-radius: 20px;
+                            border: 3px solid #b45309;
+                            margin: 15px 0;
+                        }
+                        .code-box span { font-size: 13px; font-weight: 900; display: block; text-transform: uppercase; letter-spacing: 1.5px; }
+                        .code-box strong { font-size: 52px; font-weight: 900; letter-spacing: 4px; font-family: monospace; display: block; line-height: 1.1; }
+                        .qr-frame {
+                            background: #ffffff;
+                            border: 3px solid #0f172a;
+                            padding: 16px;
+                            border-radius: 24px;
+                            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                        }
+                        .qr-frame img { width: 260px; height: 260px; display: block; }
+                        .steps-guide {
+                            background: #eef2ff;
+                            border: 2px dashed #6366f1;
+                            border-radius: 16px;
+                            padding: 14px 20px;
+                            font-size: 16px;
+                            font-weight: 800;
+                            color: #312e81;
+                            width: 100%;
+                            max-width: 480px;
+                            margin-top: 15px;
+                        }
+                        .footer-link {
+                            font-size: 12px;
+                            color: #64748b;
+                            margin-top: 10px;
+                            font-family: monospace;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="standee-card">
+                        <div class="header-pill">🖨️ सेल्फ-सर्विस स्मार्ट प्रिंट कियोस्क</div>
+                        <div>
+                            <h1 class="shop-title">${escapeHtml(shopName)}</h1>
+                            <p class="shop-sub">संचालक: ${escapeHtml(owner)} • संपर्क: ${escapeHtml(phone)}</p>
+                            <p class="shop-sub" style="font-size: 13px; margin-top: 4px;">${escapeHtml(address)}</p>
+                        </div>
+                        <div class="code-box">
+                            <span>दुकान नंबर (Shop Code)</span>
+                            <strong>${shopCode}</strong>
+                        </div>
+                        <div class="qr-frame">
+                            <img src="${qrSrc}" />
+                        </div>
+                        <div class="steps-guide">
+                            1. मोबाइल से QR स्कैन करें<br>
+                            2. दुकान नंबर <u>${shopCode}</u> दर्ज करें<br>
+                            3. फ़ाइल भेजें और तुरंत प्रिंट पाएं!
+                        </div>
+                        <div class="footer-link">${SHOP_BASE_PORTAL_URL}</div>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            window.focus();
+                            window.print();
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            const iframe = document.getElementById('printExecutionIframe');
+            if (iframe) {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                doc.open();
+                doc.write(standeeHtml);
+                doc.close();
+            }
+        };
+
+        // ==============================================
+        // TECHNICIAN FIX 3: BULLETPROOF FILE UPLOADER & PDF EXTRACTOR
+        // ==============================================
+        window.handleFileSelected = async function(e) {
+            const input = e.target;
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            window.appState.uploadedFileName = file.name;
+            window.appState.uploadedFileType = file.type || '';
+            window.appState.pdfRenderedPages = [];
+
+            if (window.appState.uploadedFileBlobUrl) {
+                URL.revokeObjectURL(window.appState.uploadedFileBlobUrl);
+            }
+            window.appState.uploadedFileBlobUrl = URL.createObjectURL(file);
+
+            const uploadTitle = document.getElementById('fileUploadName');
+            const previewName = document.getElementById('previewFileName');
+            const previewSize = document.getElementById('previewFileSize');
+            const previewContainer = document.getElementById('filePreviewContainer');
+            const thumb = document.getElementById('previewThumb');
+
+            if (uploadTitle) uploadTitle.textContent = file.name;
+            if (previewName) previewName.textContent = file.name;
+            if (previewSize) previewSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+            if (previewContainer) previewContainer.classList.remove('hidden');
+
+            // Handle Image Files
+            if (file.type && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    window.appState.uploadedFileBase64 = evt.target.result;
+                    if (thumb) {
+                        thumb.innerHTML = `<img src="${evt.target.result}" class="w-full h-full object-cover">`;
+                    }
+                };
+                reader.readAsDataURL(file);
+                const pageInput = document.getElementById('custPages');
+                if (pageInput) pageInput.value = 1;
+                recalculateBillUI();
+                showToast(`फ़ोटो चुनी गई: ${file.name}`, 'info');
+            } 
+            // Handle PDF Files
+            else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                if (thumb) {
+                    thumb.innerHTML = `<i class="fa-solid fa-file-pdf text-rose-500 text-2xl"></i>`;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async function(evt) {
+                    window.appState.uploadedFileBase64 = evt.target.result;
+                    try {
+                        const typedArray = new Uint8Array(evt.target.result);
+                        const loadingTask = pdfjsLib.getDocument({ data: typedArray });
+                        const pdf = await loadingTask.promise;
+                        
+                        const pageInput = document.getElementById('custPages');
+                        if (pageInput) pageInput.value = pdf.numPages;
+                        recalculateBillUI();
+
+                        const renderedPages = [];
+                        const pagesToRender = Math.min(pdf.numPages, 10); // Safe render batch to avoid memory lock
+                        for (let pageNum = 1; pageNum <= pagesToRender; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: 1.2 });
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+
+                            await page.render({
+                                canvasContext: context,
+                                viewport: viewport
+                            }).promise;
+
+                            renderedPages.push(canvas.toDataURL('image/jpeg', 0.85));
+                        }
+                        window.appState.pdfRenderedPages = renderedPages;
+                        showToast(`PDF में कुल ${pdf.numPages} पृष्ठ पहचाने गए`, "success");
+                    } catch (err) {
+                        console.warn("PDF extraction note: ", err);
+                        showToast(`PDF फ़ाइल लोड हो गई (${file.name})`, "info");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } 
+            // Other Document Types
+            else {
+                window.appState.uploadedFileBase64 = null;
+                if (thumb) {
+                    thumb.innerHTML = `<i class="fa-solid fa-file-lines text-indigo-500 text-2xl"></i>`;
+                }
+                showToast(`दस्तावेज़ चुना गया: ${file.name}`, 'info');
+            }
+
+            // Reset input value so re-selecting the exact same file triggers onchange
+            input.value = '';
+        };
+
+        window.previewUploadedFile = function() {
+            if (!window.appState.uploadedFileBlobUrl && !window.appState.uploadedFileBase64) {
+                showToast("कृपया पहले कोई फ़ाइल चुनें!", "error");
+                return;
+            }
+
+            const modal = document.getElementById('previewDocModal');
+            const body = document.getElementById('previewModalBody');
+            const title = document.getElementById('previewModalTitle');
+            if (!modal || !body) return;
+
+            if (title) title.textContent = window.appState.uploadedFileName || "Document Preview";
+            body.innerHTML = '';
+
+            if (window.appState.uploadedFileType && window.appState.uploadedFileType.startsWith('image/')) {
+                body.innerHTML = `<img src="${window.appState.uploadedFileBase64 || window.appState.uploadedFileBlobUrl}" class="max-w-full max-h-[70vh] object-contain rounded-xl border border-slate-200">`;
+            } else if (window.appState.pdfRenderedPages && window.appState.pdfRenderedPages.length > 0) {
+                body.innerHTML = `
+                    <div class="space-y-4 w-full text-center">
+                        ${window.appState.pdfRenderedPages.map((pg, idx) => `
+                            <div class="border p-2 rounded-xl bg-slate-50">
+                                <span class="text-xs font-bold text-slate-500 block mb-1">पेज ${idx + 1}</span>
+                                <img src="${pg}" class="max-w-full mx-auto max-h-[70vh] object-contain rounded-lg shadow-sm">
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                body.innerHTML = `<iframe src="${window.appState.uploadedFileBlobUrl}" class="w-full h-[65vh] rounded-xl border"></iframe>`;
+            }
+
+            modal.classList.remove('hidden');
+        };
+
+        window.closePreviewModal = function() {
+            const modal = document.getElementById('previewDocModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.adjustCount = function(inputId, delta) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+            recalculateBillUI();
+        };
+
+        window.calculateCurrentBill = function() {
+            const printTypeEl = document.getElementById('custPrintType');
+            const printType = printTypeEl ? printTypeEl.value : 'bw_single';
+            const pages = Math.max(1, parseInt(document.getElementById('custPages')?.value) || 1);
+            const copies = Math.max(1, parseInt(document.getElementById('custCopies')?.value) || 1);
+            const addon = document.getElementById('custAddon')?.value || 'none';
+
+            let rate = window.appState.rates.bwSingle || 2.0;
+            let typeLabel = "Black & White (1-सफे)";
+
+            if (printType === 'bw_double') {
+                rate = window.appState.rates.bwDouble || 3.0;
+                typeLabel = "Black & White (आगे-पीछे)";
+            } else if (printType === 'color_normal') {
+                rate = window.appState.rates.colorNormal || 10.0;
+                typeLabel = "Color Print (सामान्य A4)";
+            } else if (printType === 'color_photo') {
+                rate = window.appState.rates.colorPhoto || 20.0;
+                typeLabel = "Color Photo (ग्लॉसी पेपर)";
+            }
+
+            const printCost = (pages * rate) * copies;
+            let addonCost = 0;
+            if (addon === 'lamination') {
+                addonCost = (window.appState.rates.lamination || 20.0) * copies;
+            }
+
+            const grandTotal = printCost + addonCost;
+
+            return {
+                printType,
+                typeLabel,
+                pages,
+                copies,
+                rate,
+                addon,
+                addonCost,
+                grandTotal
+            };
+        };
+
+        window.recalculateBillUI = function() {
+            const bill = calculateCurrentBill();
+
+            const billTypeLabel = document.getElementById('billTypeLabel');
+            const billRatePerUnit = document.getElementById('billRatePerUnit');
+            const billCalculation = document.getElementById('billCalculation');
+            const billAddonRow = document.getElementById('billAddonRow');
+            const billAddonAmount = document.getElementById('billAddonAmount');
+            const billGrandTotal = document.getElementById('billGrandTotal');
+            const btnPayAmountText = document.getElementById('btnPayAmountText');
+
+            if (billTypeLabel) billTypeLabel.textContent = bill.typeLabel;
+            if (billRatePerUnit) billRatePerUnit.textContent = `₹${bill.rate.toFixed(2)} / पृष्ठ`;
+            if (billCalculation) billCalculation.textContent = `${bill.pages} × ${bill.copies} = ${bill.pages * bill.copies} पेज`;
+
+            if (billAddonRow && billAddonAmount) {
+                if (bill.addonCost > 0) {
+                    billAddonRow.classList.remove('hidden');
+                    billAddonAmount.textContent = `+ ₹${bill.addonCost.toFixed(2)}`;
+                } else {
+                    billAddonRow.classList.add('hidden');
+                }
+            }
+
+            const formattedTotal = `₹${bill.grandTotal.toFixed(2)}`;
+            if (billGrandTotal) billGrandTotal.textContent = formattedTotal;
+            if (btnPayAmountText) btnPayAmountText.textContent = bill.grandTotal.toFixed(2);
+        };
+
+        // ==============================================
+        // TECHNICIAN FIX 4: CUSTOMER PAYMENT & AUTOMATIC SPOOLING
+        // ==============================================
+        window.startCustomerPayment = async function() {
+            if (!window.appState.shop.isOpen) {
+                showToast("दुकान वर्तमान में बंद है!", "error");
+                return;
+            }
+
+            if (!window.appState.uploadedFileName) {
+                showToast("कृपया पहले कोई फ़ाइल या फोटो अपलोड करें!", "error");
+                const dropZone = document.getElementById('dropZoneArea');
+                if (dropZone) dropZone.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
+            const nameInput = document.getElementById('custNameInput');
+            const phoneInput = document.getElementById('custPhoneInput');
+            const custName = (nameInput?.value || window.appState.customerSession.customerName || 'Customer').trim();
+            const custPhone = (phoneInput?.value || '').trim();
+
+            const bill = calculateCurrentBill();
+            const notes = (document.getElementById('custNotes')?.value || '').trim();
+            const orderIdNum = Math.floor(1000 + Math.random() * 9000);
+            const orderId = `ORD-${orderIdNum}`;
+
+            const orderObj = {
+                id: orderId,
+                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                customerName: custName,
+                customerPhone: custPhone,
+                fileName: window.appState.uploadedFileName,
+                fileData: window.appState.uploadedFileBase64,
+                pdfPages: window.appState.pdfRenderedPages || [],
+                fileType: window.appState.uploadedFileType || 'application/pdf',
+                printType: bill.printType,
+                printTypeLabel: bill.typeLabel,
+                pages: bill.pages,
+                copies: bill.copies,
+                addon: bill.addon,
+                notes: notes,
+                totalAmount: bill.grandTotal,
+                status: "Pending",
+                paymentStatus: "Paid",
+                cfTxnId: "TXN_" + Date.now().toString().slice(-6)
+            };
+
+            const btn = document.getElementById('btnCustomerPay');
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>पेमेंट प्रोसेस हो रहा है...</span>`;
+            }
+
+            // Execute Order Creation
+            if (window.createOrderInCloud) {
+                await window.createOrderInCloud(orderObj);
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+
+            // Zero-Click Spooling if enabled
+            if (window.appState.shop.autoPrint) {
+                triggerDocumentPrint(orderObj);
+            }
+
+            openReceiptModal(orderObj);
+            playChimeSound('success');
+            showToast("भुगतान सफल! प्रिंटर पर आदेश भेज दिया गया।", "success");
+        };
+
+        window.confirmManualCashPayment = async function() {
+            if (!window.appState.uploadedFileName) {
+                showToast("कृपया पहले कोई फ़ाइल या फोटो अपलोड करें!", "error");
+                return;
+            }
+
+            const nameInput = document.getElementById('custNameInput');
+            const phoneInput = document.getElementById('custPhoneInput');
+            const custName = (nameInput?.value || window.appState.customerSession.customerName || 'Customer').trim();
+            const custPhone = (phoneInput?.value || '').trim();
+
+            const bill = calculateCurrentBill();
+            const notes = (document.getElementById('custNotes')?.value || '').trim();
+            const orderIdNum = Math.floor(1000 + Math.random() * 9000);
+
+            const orderObj = {
+                id: `ORD-${orderIdNum}`,
+                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                customerName: custName,
+                customerPhone: custPhone,
+                fileName: window.appState.uploadedFileName,
+                fileData: window.appState.uploadedFileBase64,
+                pdfPages: window.appState.pdfRenderedPages || [],
+                fileType: window.appState.uploadedFileType || 'application/pdf',
+                printType: bill.printType,
+                printTypeLabel: bill.typeLabel,
+                pages: bill.pages,
+                copies: bill.copies,
+                addon: bill.addon,
+                notes: notes,
+                totalAmount: bill.grandTotal,
+                status: "Pending",
+                paymentStatus: "Cash Paid",
+                cfTxnId: "CASH_COUNTER"
+            };
+
+            if (window.createOrderInCloud) {
+                await window.createOrderInCloud(orderObj);
+            }
+
+            if (window.appState.shop.autoPrint) {
+                triggerDocumentPrint(orderObj);
+            }
+
+            openReceiptModal(orderObj);
+            playChimeSound('success');
+            showToast("नकद भुगतान ऑर्डर दर्ज कर लिया गया!", "success");
+        };
+
+        window.openReceiptModal = function(order) {
+            const modal = document.getElementById('receiptModal');
+            if (!modal) return;
+
+            document.getElementById('receiptShopHeader').textContent = window.appState.shop.name;
+            document.getElementById('receiptOwnerHeader').textContent = `संचालक: ${window.appState.shop.owner} • ${window.appState.shop.phone}`;
+            document.getElementById('receiptOrderId').textContent = `#${order.id}`;
+            document.getElementById('receiptShopCode').textContent = `#${window.appState.activeShopCode}`;
+            document.getElementById('receiptFileName').textContent = order.fileName;
+            document.getElementById('receiptPrintType').textContent = order.printTypeLabel;
+            document.getElementById('receiptPagesInfo').textContent = `${order.pages} पृष्ठ × ${order.copies} कॉपी`;
+            document.getElementById('receiptTotalAmount').textContent = `₹${order.totalAmount.toFixed(2)}`;
+
+            modal.classList.remove('hidden');
+        };
+
+        window.closeReceiptModal = function() {
+            const modal = document.getElementById('receiptModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.closePaymentErrorModal = function() {
+            const modal = document.getElementById('paymentErrorModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.showPaymentFailureModal = function(reason) {
+            const modal = document.getElementById('paymentErrorModal');
+            const errText = document.getElementById('paymentErrorDetailedText');
+            if (errText) errText.textContent = reason || "भुगतान अस्वीकृत हुआ।";
+            if (modal) modal.classList.remove('hidden');
+            playChimeSound('error');
+        };
+
+        // ==============================================
+        // TECHNICIAN FIX 5: CUSTOMER SHOP CODE GATEWAY
+        // ==============================================
+        window.openCustomerGateModalManually = function() {
+            const gate = document.getElementById('customerGateModal');
+            if (gate) {
+                gate.classList.remove('hidden');
+                const errBox = document.getElementById('gateErrorNotice');
+                if (errBox) errBox.classList.add('hidden');
+                const codeInp = document.getElementById('gateShopCode');
+                if (codeInp) codeInp.focus();
+            }
+        };
+
+        window.handleCustomerGateSubmit = async function(e) {
+            if (e) e.preventDefault();
+            const nameInp = document.getElementById('gateCustomerName');
+            const codeInp = document.getElementById('gateShopCode');
+            const errBox = document.getElementById('gateErrorNotice');
+            const errText = document.getElementById('gateErrorText');
+            const submitBtn = document.getElementById('btnGateSubmit');
+
+            const customerName = (nameInp ? nameInp.value : '').trim();
+            const rawCode = (codeInp ? codeInp.value : '').trim();
+
+            if (!customerName) {
+                if (errBox) errBox.classList.remove('hidden');
+                if (errText) errText.textContent = "कृपया अपना पूरा नाम दर्ज करें!";
+                if (nameInp) nameInp.focus();
+                return;
+            }
+
+            if (!rawCode || rawCode.length !== 4) {
+                if (errBox) errBox.classList.remove('hidden');
+                if (errText) errText.textContent = "कृपया काउंटर पोस्टर से 4 अंकों का दुकान नंबर (Shop Code) दर्ज करें!";
+                if (codeInp) codeInp.focus();
+                return;
+            }
+
+            const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>दुकान सत्यापित हो रही है...</span>`;
+            }
+
+            try {
+                const shopData = await window.fetchShopByCode(rawCode);
+
+                if (!shopData) {
+                    if (errBox) errBox.classList.remove('hidden');
+                    if (errText) errText.textContent = `दुकान नंबर #${rawCode} मौजूद नहीं है! कृपया काउंटर पर लगा सही 4-अंकीय कोड दर्ज करें।`;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnHtml;
+                    }
+                    playChimeSound('error');
+                    return;
+                }
+
+                // Check if shop is locked or subscription expired
+                const accounts = getDukandarAccounts();
+                for (let ph in accounts) {
+                    if (String(accounts[ph].shopCode) === rawCode) {
+                        const sub = accounts[ph].subscription || { expiresAt: Date.now() - 1000 };
+                        if (accounts[ph].isLocked || sub.expiresAt < Date.now()) {
+                            if (errBox) errBox.classList.remove('hidden');
+                            if (errText) errText.textContent = `दुकान #${rawCode} की सेवा अस्थायी रूप से बंद है (सब्सक्रिप्शन समाप्त)। कृपया दुकानदार से संपर्क करें।`;
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnHtml;
+                            }
+                            playChimeSound('error');
+                            return;
+                        }
+                    }
+                }
+
+                // Shop Verified Successfully!
+                window.appState.customerSession.verified = true;
+                window.appState.customerSession.customerName = customerName;
+                window.appState.customerSession.enteredShopCode = rawCode;
+                window.appState.activeShopCode = rawCode;
+
+                if (shopData.shop) window.appState.shop = { ...window.appState.shop, ...shopData.shop, shopCode: rawCode };
+                if (shopData.rates) window.appState.rates = { ...window.appState.rates, ...shopData.rates };
+                if (shopData.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...shopData.cashfree };
+                if (shopData.printers) window.appState.printers = { ...window.appState.printers, ...shopData.printers };
+
+                const custNameInput = document.getElementById('custNameInput');
+                if (custNameInput) custNameInput.value = customerName;
+
+                const gate = document.getElementById('customerGateModal');
+                if (gate) gate.classList.add('hidden');
+
+                if (window.attachShopDataListeners) {
+                    window.attachShopDataListeners(rawCode);
+                }
+
+                syncUiFromState(false);
+                playChimeSound('success');
+                showToast(`सफलतापूर्वक कनेक्ट: ${window.appState.shop.name} (दुकान #${rawCode})`, "success");
+
+            } catch (err) {
+                console.error("Shop verification error:", err);
+                if (errBox) errBox.classList.remove('hidden');
+                if (errText) errText.textContent = "सत्यापन में तकनीकी त्रुटि। कृपया पुनः प्रयास करें।";
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                }
+            }
+        };
+
+        // Auto-initialize helper for printer brand suggestions
+        window.addEventListener('DOMContentLoaded', () => {
+            const bwBrandEl = document.getElementById('printerBwBrand');
+            const colorBrandEl = document.getElementById('printerColorBrand');
+            if (bwBrandEl) bwBrandEl.addEventListener('change', () => autoFillModelSuggestions('bw'));
+            if (colorBrandEl) colorBrandEl.addEventListener('change', () => autoFillModelSuggestions('color'));
+        });
+
+        // ==============================================
         // DUKANDAR AUTH MODALS & NAVIGATION HANDLERS
         // ==============================================
         window.handleDukandarNavClick = function() {
@@ -1765,7 +2324,6 @@
         };
 
         window.openDukandarLoginModal = function() {
-            // Dismiss customer gate if open
             const gate = document.getElementById('customerGateModal');
             if (gate) gate.classList.add('hidden');
 
@@ -1785,7 +2343,6 @@
             if (loginModal) loginModal.classList.add('hidden');
             if (signupModal) signupModal.classList.add('hidden');
 
-            // If customer was unverified and shopkeeper is not logged in, restore gate
             if (!window.appState.dukandarAuth.isLoggedIn && !window.appState.customerSession.verified) {
                 const gate = document.getElementById('customerGateModal');
                 if (gate) gate.classList.remove('hidden');
@@ -1867,7 +2424,6 @@
             if (user.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...user.cashfree };
             if (user.printers) window.appState.printers = { ...window.appState.printers, ...user.printers };
 
-            // Persist session
             localStorage.setItem('ask_dukandar_session', JSON.stringify({
                 isLoggedIn: true,
                 phone: phone,
@@ -2006,7 +2562,6 @@
 
             saveDukandarAccounts(accounts);
 
-            // Auto-login newly registered shopkeeper
             window.appState.dukandarAuth.isLoggedIn = true;
             window.appState.dukandarAuth.currentPhone = pendingSignupData.phone;
             window.appState.dukandarAuth.myShopCode = newShopCode;
@@ -2049,16 +2604,14 @@
                 gain.connect(ctx.destination);
 
                 if (type === 'success') {
-                    // Pleasant two-tone chime
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
                     gain.gain.setValueAtTime(0.3, ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
                     osc.start();
                     osc.stop(ctx.currentTime + 0.45);
                 } else {
-                    // Warning tone
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(220, ctx.currentTime);
                     gain.gain.setValueAtTime(0.2, ctx.currentTime);
@@ -2066,14 +2619,9 @@
                     osc.start();
                     osc.stop(ctx.currentTime + 0.35);
                 }
-            } catch (e) {
-                // AudioContext not allowed or not supported; gracefully ignore
-            }
+            } catch (e) {}
         }
 
-        // ==============================================
-        // SUPER ADMIN PLATFORM CONFIG & LOCAL PERSISTENCE
-        // ==============================================
         function getSuperAdminConfig() {
             try {
                 const stored = localStorage.getItem('ask_super_admin_config');
@@ -2107,7 +2655,6 @@
                 }
             } catch (e) {}
             
-            // Seed with initial master shop (with 365 days initial subscription)
             const seed = {
                 "9117327903": {
                     ownerName: "Ansal Kumar",
@@ -2119,9 +2666,9 @@
                     createdAt: "2024-01-01",
                     isLocked: false,
                     subscription: {
-                        planType: "active", // "trial", "active", "expired"
+                        planType: "active",
                         startedAt: Date.now(),
-                        expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000) // 1 year active for master shop
+                        expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000)
                     }
                 }
             };
@@ -2150,9 +2697,6 @@
             return code;
         }
 
-        // ==============================================
-        // SUBSCRIPTION & COUNTDOWN ENGINE
-        // ==============================================
         function startSubscriptionCountdownEngine() {
             if (subscriptionTimerInterval) clearInterval(subscriptionTimerInterval);
             updateSubscriptionCountdownUI();
@@ -2180,7 +2724,6 @@
             const planBadgeEl = document.getElementById('subPlanBadge');
             const statusBanner = document.getElementById('subscriptionStatusBanner');
 
-            // If manually locked by Super Admin OR time expired
             if (user.isLocked || diffMs <= 0) {
                 if (countdownEl) countdownEl.textContent = "समय समाप्त (00 दिन 00:00:00)";
                 if (planBadgeEl) {
@@ -2191,14 +2734,12 @@
                     statusBanner.className = "p-4 sm:p-5 rounded-3xl border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm bg-gradient-to-r from-rose-500/15 via-rose-500/5 to-transparent border-rose-300";
                 }
 
-                // Show modal lock if admin view is open
                 if (window.appState.currentView === 'admin') {
                     openDukandarExpiredModal(user);
                 }
                 return;
             }
 
-            // Still active - calculate Days, Hours, Minutes, Seconds
             const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -2240,9 +2781,6 @@
             openDukandarExpiredModal(accounts[phone]);
         }
 
-        // ==============================================
-        // DUKANDAR CASHFREE SUBSCRIPTION PAYMENT ENGINE
-        // ==============================================
         async function paySubscriptionViaCashfree() {
             const superCfg = window.appState.superAdmin;
             const cfConfig = superCfg.cashfree || {};
@@ -2252,15 +2790,17 @@
             const shopCode = window.appState.dukandarAuth.myShopCode || "1042";
 
             const btn = document.getElementById('btnRenewSubscriptionGateway');
-            const originalBtnHtml = btn.innerHTML;
+            const originalBtnHtml = btn ? btn.innerHTML : '';
 
             if (!cfConfig.appId || !cfConfig.secretKey) {
                 showPaymentFailureModal("सुपर एडमिन ने अभी तक कैशफ्री पेमेंट गेटवे (App ID / Secret Key) सेट नहीं किया है। कृपया प्लेटफ़ॉर्म व्यवस्थापक से संपर्क करें।");
                 return;
             }
 
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>पेमेंट गेटवे खुल रहा है...</span>`;
-            btn.disabled = true;
+            if (btn) {
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>पेमेंट गेटवे खुल रहा है...</span>`;
+                btn.disabled = true;
+            }
 
             const orderId = `SUB_${shopCode}_` + Date.now().toString().slice(-6);
 
@@ -2298,13 +2838,14 @@
                             paymentSessionId: data.payment_session_id,
                             redirectTarget: "_modal"
                         }).then((result) => {
-                            btn.innerHTML = originalBtnHtml;
-                            btn.disabled = false;
+                            if (btn) {
+                                btn.innerHTML = originalBtnHtml;
+                                btn.disabled = false;
+                            }
 
                             if (result && result.paymentDetails) {
                                 const status = result.paymentDetails.paymentStatus || result.paymentDetails.txStatus || "SUCCESS";
                                 if (status === "SUCCESS" || status === "PAID") {
-                                    // Subscription payment verified! Automatically unlock and add 30 days
                                     superAdminUnlockShop(phone);
                                     playChimeSound('success');
                                     const modal = document.getElementById('dukandarExpiredModal');
@@ -2319,8 +2860,10 @@
                                 showPaymentFailureModal("भुगतान विंडो बंद कर दी गई। सब्सक्रिप्शन रिन्यू नहीं हुआ।");
                             }
                         }).catch((checkoutErr) => {
-                            btn.innerHTML = originalBtnHtml;
-                            btn.disabled = false;
+                            if (btn) {
+                                btn.innerHTML = originalBtnHtml;
+                                btn.disabled = false;
+                            }
                             showPaymentFailureModal(`चेकआउट एरर: ${checkoutErr.message || 'भुगतान प्रक्रिया रद्द हो गई।'}`);
                         });
                         return;
@@ -2332,8 +2875,10 @@
                     throw new Error(errData.message || `HTTP ${response.status} एरर`);
                 }
             } catch (err) {
-                btn.innerHTML = originalBtnHtml;
-                btn.disabled = false;
+                if (btn) {
+                    btn.innerHTML = originalBtnHtml;
+                    btn.disabled = false;
+                }
                 showPaymentFailureModal(`एडमिन पेमेंट गेटवे एरर: ${err.message || 'API कुंजियां अमान्य हैं।'}`);
             }
         }
@@ -2368,6 +2913,7 @@
                 icon.className = 'fa-solid fa-eye text-xs';
             }
         }
+
         function triggerDocumentPrint(order) {
             playChimeSound('success');
             const isColor = order.printType && order.printType.includes('color');
@@ -2437,7 +2983,6 @@
                 </html>
             `;
 
-            // Zero-Click Automated Spooling through hidden execution iframe
             const iframe = document.getElementById('printExecutionIframe');
             if (iframe) {
                 const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -2445,7 +2990,6 @@
                 doc.write(completePrintDoc);
                 doc.close();
 
-                // Wait slightly for document render then execute automatic print
                 setTimeout(() => {
                     iframe.contentWindow.focus();
                     try {
@@ -2593,9 +3137,6 @@
             }
         }
 
-        // ==============================================
-        // SUPER ADMIN CONTROLS & MANAGEMENT
-        // ==============================================
         function openSuperAdminPinModal() {
             const modal = document.getElementById('superAdminPinModal');
             const pinInp = document.getElementById('inputSuperAdminPin');
@@ -2632,23 +3173,27 @@
             document.getElementById('viewAdmin').classList.add('hidden');
             document.getElementById('viewSuperAdmin').classList.remove('hidden');
 
-            // Populate settings inputs
             const cfg = window.appState.superAdmin;
             document.getElementById('superTrialDays').value = cfg.trialDays || 3;
             document.getElementById('superMonthlyPrice').value = cfg.monthlyFee || 299;
             document.getElementById('superAdminContactPhone').value = cfg.contactPhone || "9117327903";
 
-            // Populate Super Admin Cashfree Inputs
             const cfCfg = cfg.cashfree || {};
             document.getElementById('superCfEnvironment').value = cfCfg.environment || "sandbox";
             document.getElementById('superCfAppId').value = cfCfg.appId || "";
             document.getElementById('superCfSecretKey').value = cfCfg.secretKey || "";
 
-            document.getElementById('guideTrialDays').textContent = cfg.trialDays || 3;
-            document.getElementById('guideMonthlyFee').textContent = cfg.monthlyFee || 299;
             document.getElementById('superStatCurrentFee').textContent = `₹${cfg.monthlyFee}/माह`;
 
             renderSuperAdminShopkeepersTable();
+        }
+
+        function closeSuperAdminView() {
+            if (window.appState.dukandarAuth && window.appState.dukandarAuth.isLoggedIn) {
+                switchView('admin');
+            } else {
+                switchView('customer');
+            }
         }
 
         function handleSaveSuperAdminPricing(e) {
@@ -2665,28 +3210,8 @@
             };
             saveSuperAdminConfig(updatedCfg);
 
-            document.getElementById('guideTrialDays').textContent = trialDays;
-            document.getElementById('guideMonthlyFee').textContent = monthlyFee;
             document.getElementById('superStatCurrentFee').textContent = `₹${monthlyFee}/माह`;
-
             showToast("सब्सक्रिप्शन सेटिंग्स सफलतापूर्वक अपडेट!", "success");
-        }
-
-        function handleSaveSuperAdminPin(e) {
-            e.preventDefault();
-            const newPin = (document.getElementById('superAdminNewPin').value || '').trim();
-            if (newPin.length < 4) {
-                showToast("PIN कम से कम 4 अंकों का होना चाहिए!", "error");
-                return;
-            }
-
-            const updatedCfg = {
-                ...window.appState.superAdmin,
-                pin: newPin
-            };
-            saveSuperAdminConfig(updatedCfg);
-            document.getElementById('superAdminNewPin').value = "";
-            showToast("सुपर एडमिन सुरक्षा PIN बदल दिया गया!", "success");
         }
 
         function renderSuperAdminShopkeepersTable() {
@@ -2776,7 +3301,7 @@
 
             const now = Date.now();
             const curExpiry = accounts[phone].subscription?.expiresAt || now;
-            const newExpiry = Math.max(now, curExpiry) + (30 * 24 * 60 * 60 * 1000); // add 30 days
+            const newExpiry = Math.max(now, curExpiry) + (30 * 24 * 60 * 60 * 1000);
 
             accounts[phone].isLocked = false;
             accounts[phone].subscription = {
@@ -2797,7 +3322,7 @@
             accounts[phone].isLocked = true;
             accounts[phone].subscription = {
                 ...accounts[phone].subscription,
-                expiresAt: Date.now() - 1000 // force expire
+                expiresAt: Date.now() - 1000
             };
 
             saveDukandarAccounts(accounts);
@@ -2893,6 +3418,56 @@
             recalculateBillUI();
         }
 
+        function handleSaveRates(e) {
+            e.preventDefault();
+            window.appState.rates.bwSingle = parseFloat(document.getElementById('rateBwSingle').value) || 2.0;
+            window.appState.rates.bwDouble = parseFloat(document.getElementById('rateBwDouble').value) || 3.0;
+            window.appState.rates.colorNormal = parseFloat(document.getElementById('rateColorNormal').value) || 10.0;
+            window.appState.rates.colorPhoto = parseFloat(document.getElementById('rateColorPhoto').value) || 20.0;
+            window.appState.rates.lamination = parseFloat(document.getElementById('rateLamination').value) || 20.0;
+            window.appState.rates.scanning = parseFloat(document.getElementById('rateScanning').value) || 5.0;
+
+            if (window.saveSettingsToCloud) window.saveSettingsToCloud();
+            syncUiFromState(false);
+            showToast("दुकान के प्रिंट रेट्स सुरक्षित हो गए!", "success");
+        }
+
+        function handleSaveCashfreeSettings(e) {
+            e.preventDefault();
+            window.appState.cashfree.environment = document.getElementById('cfEnvironment').value;
+            window.appState.cashfree.appId = document.getElementById('cfAppId').value.trim();
+            window.appState.cashfree.secretKey = document.getElementById('cfSecretKey').value.trim();
+
+            if (window.saveSettingsToCloud) window.saveSettingsToCloud();
+            showToast("पेमेंट गेटवे सेटिंग्स सुरक्षित हो गईं!", "success");
+        }
+
+        function toggleSecretVisibility() {
+            const inp = document.getElementById('cfSecretKey');
+            const icon = document.getElementById('secretEyeIcon');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                inp.type = 'password';
+                icon.className = 'fa-solid fa-eye text-xs';
+            }
+        }
+
+        function toggleAutoPrint(enabled) {
+            window.appState.shop.autoPrint = enabled;
+            const label = document.getElementById('autoPrintStatusLabel');
+            if (enabled) {
+                label.textContent = "सक्रिय (ON)";
+                label.className = "text-xs font-bold text-emerald-400";
+                showToast("ऑटो-प्रिंट ऑन: ऑर्डर आते ही प्रिंटर चलेगा!", "success");
+            } else {
+                label.textContent = "बंद (OFF)";
+                label.className = "text-xs font-bold text-slate-400";
+                showToast("ऑटो-प्रिंट बंद", "info");
+            }
+        }
+
         function showToast(message, type = "info") {
             const toast = document.getElementById('toastNotification');
             const msgEl = document.getElementById('toastMessage');
@@ -2925,14 +3500,108 @@
                 .replace(/'/g, "&#039;");
         }
 
+        window.fetchShopByCode = async function(shopCode) {
+            shopCode = String(shopCode).trim();
+            const accounts = getDukandarAccounts();
+            for (let ph in accounts) {
+                if (String(accounts[ph].shopCode) === shopCode) {
+                    return {
+                        shop: {
+                            name: accounts[ph].shopName,
+                            owner: accounts[ph].ownerName,
+                            phone: accounts[ph].phone,
+                            address: accounts[ph].address,
+                            shopCode: shopCode,
+                            isOpen: accounts[ph].isOpen !== false,
+                            autoPrint: true
+                        },
+                        rates: accounts[ph].rates || window.appState.rates,
+                        cashfree: accounts[ph].cashfree || window.appState.cashfree,
+                        printers: accounts[ph].printers || window.appState.printers,
+                        subscription: accounts[ph].subscription || null
+                    };
+                }
+            }
+
+            if (shopCode === "1042") {
+                return {
+                    shop: { ...window.appState.shop, shopCode: "1042" },
+                    rates: { ...window.appState.rates },
+                    cashfree: { ...window.appState.cashfree },
+                    printers: { ...window.appState.printers }
+                };
+            }
+            return null;
+        };
+
+        window.createOrderInCloud = async function(orderObj) {
+            const shopCode = String(window.appState.activeShopCode || "1042").trim();
+            const enrichedOrder = { ...orderObj, shopCode: shopCode, timestamp: Date.now() };
+
+            window.appState.orders.unshift(enrichedOrder);
+            try {
+                localStorage.setItem(`ask_shop_${shopCode}_orders`, JSON.stringify(window.appState.orders));
+            } catch (e) {}
+            if (typeof renderOrdersTable === 'function') renderOrdersTable();
+            if (typeof updateStatsUI === 'function') updateStatsUI();
+            return true;
+        };
+
+        window.saveSettingsToCloud = async function() {
+            const shopCode = String(window.appState.shop.shopCode || window.appState.activeShopCode || "1042").trim();
+            const payload = {
+                shop: { ...window.appState.shop, shopCode: shopCode },
+                rates: { ...window.appState.rates },
+                cashfree: { ...window.appState.cashfree },
+                printers: { ...window.appState.printers }
+            };
+
+            try {
+                localStorage.setItem(`ask_shop_${shopCode}_config`, JSON.stringify(payload));
+                const accounts = getDukandarAccounts();
+                const curPhone = window.appState.dukandarAuth.currentPhone;
+                if (curPhone && accounts[curPhone]) {
+                    accounts[curPhone].shopName = window.appState.shop.name;
+                    accounts[curPhone].rates = window.appState.rates;
+                    accounts[curPhone].cashfree = window.appState.cashfree;
+                    accounts[curPhone].printers = window.appState.printers;
+                    saveDukandarAccounts(accounts);
+                }
+            } catch (e) {}
+            showToast("सेटिंग्स सुरक्षित हो गईं!", "success");
+        };
+
+        window.attachShopDataListeners = function(shopCode) {
+            if (!shopCode) return;
+            shopCode = String(shopCode).trim();
+            window.appState.activeShopCode = shopCode;
+            window.appState.shop.shopCode = shopCode;
+
+            try {
+                const cachedShop = localStorage.getItem(`ask_shop_${shopCode}_config`);
+                if (cachedShop) {
+                    const parsed = JSON.parse(cachedShop);
+                    if (parsed.shop) window.appState.shop = { ...window.appState.shop, ...parsed.shop };
+                    if (parsed.rates) window.appState.rates = { ...window.appState.rates, ...parsed.rates };
+                    if (parsed.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...parsed.cashfree };
+                    if (parsed.printers) window.appState.printers = { ...window.appState.printers, ...parsed.printers };
+                    syncUiFromState(false);
+                }
+                const cachedOrders = localStorage.getItem(`ask_shop_${shopCode}_orders`);
+                if (cachedOrders) {
+                    window.appState.orders = JSON.parse(cachedOrders);
+                    if (typeof renderOrdersTable === 'function') renderOrdersTable();
+                    if (typeof updateStatsUI === 'function') updateStatsUI();
+                }
+            } catch (e) {}
+        };
+
         // ==============================================
         // INITIALIZATION
         // ==============================================
         window.addEventListener('load', () => {
-            // Load Super Admin Config
             window.appState.superAdmin = getSuperAdminConfig();
 
-            // Check persistent login session for DUKANDAR only
             let isDukandarSessionActive = false;
             try {
                 const cachedAuth = localStorage.getItem('ask_dukandar_session');
