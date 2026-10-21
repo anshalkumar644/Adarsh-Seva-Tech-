@@ -1,0 +1,2987 @@
+<!DOCTYPE html>
+<html lang="hi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>स्मार्ट प्रिंट कियोस्क - Self Service Print Portal</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans Devanagari', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- QR Code Generator JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- PDF.js for rendering uploaded PDF pages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <!-- Cashfree Official Web Checkout SDK v3 -->
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.95; transform: scale(1.008); }
+        }
+        .animate-live {
+            animation: pulse-subtle 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                
+                <!-- Brand Title & Active Shop Info -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-print"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 id="navShopName" class="font-extrabold text-base sm:text-xl text-slate-900 tracking-tight leading-tight">
+                                आदर्श सेवा केंद्र
+                            </h1>
+                            <span id="navShopCodeBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-amber-50 text-amber-800 border border-amber-300">
+                                दुकान #<span id="navShopCodeDisplay">1042</span>
+                            </span>
+                        </div>
+                        <p class="text-[11px] sm:text-xs text-slate-500 font-medium">क्लाउड सिंक • सुरक्षित पेमेंट • डायरेक्ट ऑटो-प्रिंट</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Controls -->
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="switchView('customer')" id="btnNavCustomer" 
+                        class="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs tracking-wide transition flex items-center gap-2 bg-brand-50 text-brand-700 border border-brand-200 shadow-sm">
+                        <i class="fa-solid fa-user"></i>
+                        <span>ग्राहक पोर्टल</span>
+                    </button>
+
+                    <button type="button" onclick="handleDukandarNavClick()" id="btnNavAdmin" 
+                        class="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs tracking-wide transition flex items-center gap-2 text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200">
+                        <i class="fa-solid fa-store text-brand-600"></i>
+                        <span id="navDukandarBtnText">दुकानदार साइन इन</span>
+                    </button>
+
+                    <!-- Hidden Super Admin Button -->
+                    <button type="button" onclick="openSuperAdminPinModal()" id="btnNavSuperAdmin"
+                        class="px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-xl font-bold text-xs text-purple-700 hover:bg-purple-50 border border-purple-200 transition flex items-center gap-1.5" title="मालिक / सुपर एडमिन पैनल">
+                        <i class="fa-solid fa-crown text-amber-500"></i>
+                        <span class="hidden sm:inline">सुपर एडमिन</span>
+                    </button>
+
+                    <button type="button" onclick="dukandarLogout()" id="btnNavLogout" 
+                        class="hidden px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl font-bold text-xs transition items-center gap-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200" title="लॉगआउट करें">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline">लॉगआउट</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+        <!-- ============================================== -->
+        <!-- VIEW 1: CUSTOMER PORTAL -->
+        <!-- ============================================== -->
+        <section id="viewCustomer" class="space-y-8 transition-all duration-300">
+            
+            <!-- Hero Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-brand-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
+                <div class="relative z-10 max-w-3xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold mb-3">
+                        <i class="fa-solid fa-shield-check text-emerald-400"></i> कनेक्टेड: <span id="bannerShopLabel">आदर्श सेवा केंद्र (दुकान #1042)</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                        दस्तावेज़ अपलोड करें व काउंटर पर तुरंत प्रिंट पाएं
+                    </h2>
+                    <p class="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">
+                        अपनी फ़ाइल चुनें, पेज सेटिंग करें और सीधे PhonePe, Paytm, GPay, कार्ड्स या नकद से भुगतान करें। भुगतान पूरा होते ही इस दुकान के प्रिंटर पर प्रिंट अपने आप शुरू हो जाएगा!
+                    </p>
+                </div>
+                <div class="absolute -right-8 -bottom-10 opacity-10 text-9xl text-white pointer-events-none">
+                    <i class="fa-solid fa-print"></i>
+                </div>
+            </div>
+
+            <!-- Customer Two-Column Booking & Payment Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left Column: File Upload & Print Options (7 Cols) -->
+                <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-file-circle-plus text-brand-600"></i> फ़ाइल व प्रिंट सेटिंग्स
+                        </h3>
+                        <button type="button" onclick="openCustomerGateModalManually()" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-rotate"></i> दूसरी दुकान कनेक्ट करें
+                        </button>
+                    </div>
+
+                    <!-- Step 1: File Upload Box -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                            1. फ़ाइल या फ़ोटो चुनें <span class="text-rose-500">*</span>
+                        </label>
+                        
+                        <div onclick="document.getElementById('fileUploadInput').click()" 
+                            class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50/70 hover:bg-brand-50/30 rounded-2xl p-6 text-center cursor-pointer transition group">
+                            <input type="file" id="fileUploadInput" accept=".pdf,image/*,.doc,.docx,.txt" class="hidden" onchange="handleFileSelected(event)">
+                            
+                            <div class="w-14 h-14 rounded-2xl bg-white shadow-sm border border-slate-200 text-brand-600 group-hover:scale-110 flex items-center justify-center text-2xl mx-auto transition">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <h4 id="fileUploadName" class="text-sm font-bold text-slate-800 mt-3">फ़ाइल चुनने के लिए यहाँ क्लिक करें (PDF / Image)</h4>
+                            <p class="text-xs text-slate-400 mt-1">PDF, JPG, PNG (ऑटोमैटिक पेज डिटेक्शन)</p>
+                        </div>
+
+                        <!-- Uploaded Preview Card -->
+                        <div id="filePreviewContainer" class="hidden mt-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div id="previewThumb" class="w-12 h-12 rounded-xl bg-white border border-slate-300 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                                    <i class="fa-solid fa-file-pdf text-rose-500 text-2xl"></i>
+                                </div>
+                                <div class="truncate">
+                                    <span id="previewFileName" class="text-xs font-bold text-slate-800 block truncate">Document.pdf</span>
+                                    <span id="previewFileSize" class="text-[11px] text-slate-500">250 KB</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="previewUploadedFile()" class="px-2.5 py-1 text-xs rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold">
+                                    <i class="fa-solid fa-eye"></i> देखें
+                                </button>
+                                <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-check"></i> तैयार
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Print Settings Grid -->
+                    <div class="space-y-4">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            2. प्रिंट का प्रकार और कॉपियां
+                        </label>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Print Type Selector -->
+                            <div>
+                                <span class="text-xs font-semibold text-slate-600 block mb-1">कलर या ब्लैक & व्हाइट:</span>
+                                <select id="custPrintType" onchange="recalculateBillUI()" 
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer">
+                                    <option value="bw_single">Black & White (1-सफे / Single-side)</option>
+                                    <option value="bw_double">Black & White (आगे-पीछे / 2-side)</option>
+                                    <option value="color_normal">Color Print (A4 सामान्य पेपर)</option>
+                                    <option value="color_photo">Color Photo Print (ग्लॉसी पेपर)</option>
+                                </select>
+                            </div>
+
+                            <!-- Page Count Selector -->
+                            <div>
+                                <span class="text-xs font-semibold text-slate-600 block mb-1">कुल पन्ने (Pages):</span>
+                                <div class="flex items-center">
+                                    <button type="button" onclick="adjustCount('custPages', -1)" class="w-10 h-10 rounded-l-xl bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 font-bold">-</button>
+                                    <input type="number" id="custPages" value="1" min="1" max="500" oninput="recalculateBillUI()" 
+                                        class="w-full h-10 border-y border-slate-300 text-center font-bold text-sm text-slate-900 outline-none">
+                                    <button type="button" onclick="adjustCount('custPages', 1)" class="w-10 h-10 rounded-r-xl bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 font-bold">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Copies Quantity -->
+                            <div>
+                                <span class="text-xs font-semibold text-slate-600 block mb-1">कॉपियों की संख्या (Copies):</span>
+                                <div class="flex items-center">
+                                    <button type="button" onclick="adjustCount('custCopies', -1)" class="w-10 h-10 rounded-l-xl bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 font-bold">-</button>
+                                    <input type="number" id="custCopies" value="1" min="1" max="100" oninput="recalculateBillUI()" 
+                                        class="w-full h-10 border-y border-slate-300 text-center font-bold text-sm text-slate-900 outline-none">
+                                    <button type="button" onclick="adjustCount('custCopies', 1)" class="w-10 h-10 rounded-r-xl bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 font-bold">+</button>
+                                </div>
+                            </div>
+
+                            <!-- Additional Add-on -->
+                            <div>
+                                <span class="text-xs font-semibold text-slate-600 block mb-1">अतिरिक्त सुविधा (Add-on):</span>
+                                <select id="custAddon" onchange="recalculateBillUI()" 
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold text-xs sm:text-sm text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer">
+                                    <option value="none">कोई नहीं (No Addon)</option>
+                                    <option value="lamination">लैमिनेशन (Lamination Cover)</option>
+                                    <option value="staple">स्टेपलिंग (Stapler Pin Free)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Customer Details -->
+                    <div class="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            3. आपकी संपर्क जानकारी
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <span class="text-xs font-medium text-slate-600 block mb-1">आपका नाम:</span>
+                                <input type="text" id="custNameInput" placeholder="उदा: Rahul Kumar"
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-slate-600 block mb-1">मोबाइल नंबर (10 अंक):</span>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-xs">+91</span>
+                                    <input type="tel" id="custPhoneInput" placeholder="9876543210" pattern="[0-9]{10}" maxlength="10"
+                                        class="w-full pl-11 pr-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-brand-500">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-slate-600 block mb-1">विशेष निर्देश (यदि कोई हो):</span>
+                            <input type="text" id="custNotes" placeholder="उदा: सिर्फ पेज 1 और 3 निकालें..." 
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Bill & Payment Checkout (5 Cols) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-white rounded-3xl p-6 sm:p-7 shadow-lg shadow-slate-200/50 border border-slate-200">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-receipt text-indigo-600"></i> बिल सारांश (Bill Summary)
+                            </h3>
+                            <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200" id="billShopBadge">
+                                दुकान #1042 रेट्स
+                            </span>
+                        </div>
+
+                        <!-- Bill Breakdown List -->
+                        <div class="space-y-3 py-4 text-xs sm:text-sm border-b border-slate-100">
+                            <div class="flex justify-between items-center text-slate-600">
+                                <span>प्रिंट का प्रकार:</span>
+                                <span id="billTypeLabel" class="font-bold text-slate-800">B&W Single Side</span>
+                            </div>
+                            <div class="flex justify-between items-center text-slate-600">
+                                <span>दुकानदार की तय दर:</span>
+                                <span id="billRatePerUnit" class="font-bold text-slate-800">₹2.00 / पृष्ठ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-slate-600">
+                                <span>कुल गणना (पन्ने × कॉपियां):</span>
+                                <span id="billCalculation" class="font-bold text-slate-800">1 × 1 = 1 पेज</span>
+                            </div>
+                            <div id="billAddonRow" class="hidden flex justify-between items-center text-slate-600">
+                                <span>अतिरिक्त सेवा (Add-on):</span>
+                                <span id="billAddonAmount" class="font-bold text-purple-700">+ ₹0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Grand Total Highlight -->
+                        <div class="py-4 flex items-center justify-between bg-gradient-to-r from-purple-50 via-indigo-50 to-brand-50 px-4 rounded-2xl my-4 border border-purple-100">
+                            <div>
+                                <span class="text-xs text-purple-900 font-bold block uppercase tracking-wider">कुल देय राशि</span>
+                                <span class="text-[11px] text-purple-700 font-medium">100% सुरक्षित भुगतान</span>
+                            </div>
+                            <div class="text-2xl sm:text-3xl font-black text-purple-800" id="billGrandTotal">
+                                ₹2.00
+                            </div>
+                        </div>
+
+                        <!-- PRIMARY PAYMENT BUTTON -->
+                        <div class="space-y-3">
+                            <button type="button" onclick="startCustomerPayment()" id="btnCustomerPay"
+                                class="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-700 via-indigo-700 to-brand-700 hover:from-purple-800 hover:to-brand-800 text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-purple-700/25 transition active:scale-[0.98]">
+                                <i class="fa-solid fa-lock text-base"></i>
+                                <span>पेमेंट करें व प्रिंट निकालें (₹<span id="btnPayAmountText">2.00</span>)</span>
+                            </button>
+
+                            <!-- Trust Badges -->
+                            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">समस्त भुगतान विकल्प समर्थित:</span>
+                                <div class="flex items-center justify-center gap-3 text-slate-600 text-sm">
+                                    <span class="inline-flex items-center gap-1 font-bold text-indigo-600 bg-white px-2 py-1 rounded-md border border-slate-200 text-[11px]">
+                                        <i class="fa-solid fa-wallet"></i> PhonePe
+                                    </span>
+                                    <span class="inline-flex items-center gap-1 font-bold text-sky-600 bg-white px-2 py-1 rounded-md border border-slate-200 text-[11px]">
+                                        <i class="fa-solid fa-shield"></i> Paytm
+                                    </span>
+                                    <span class="inline-flex items-center gap-1 font-bold text-amber-600 bg-white px-2 py-1 rounded-md border border-slate-200 text-[11px]">
+                                        <i class="fa-brands fa-google-pay text-sm"></i> GPay
+                                    </span>
+                                    <span class="inline-flex items-center gap-1 font-bold text-slate-700 bg-white px-2 py-1 rounded-md border border-slate-200 text-[11px]">
+                                        <i class="fa-regular fa-credit-card"></i> UPI / कार्ड्स
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cash Counter Backup Option -->
+                        <div class="mt-4 pt-4 border-t border-slate-200/80">
+                            <details class="text-xs text-slate-600">
+                                <summary class="font-bold text-slate-700 cursor-pointer hover:text-brand-600 flex items-center justify-between">
+                                    <span>वैकल्पिक: काउंटर पर नकद (Cash) दिया?</span>
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </summary>
+                                <div class="pt-3 space-y-2">
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        यदि आपने काउंटर पर दुकानदार को नकद पैसे दे दिए हैं, तो दुकानदार से कहें कि वे इसे अपने डैशबोर्ड से वेरिफाई करें:
+                                    </p>
+                                    <button type="button" onclick="confirmManualCashPayment()" 
+                                        class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-money-bill-wave text-emerald-600"></i>
+                                        <span>नकद भुगतान सबमिट करें</span>
+                                    </button>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: DUKANDAR ADMIN DASHBOARD -->
+        <!-- ============================================== -->
+        <section id="viewAdmin" class="hidden space-y-8 transition-all duration-300">
+            
+            <!-- Subscription Expiration Alert Banner (If in trial or near expiry) -->
+            <div id="subscriptionStatusBanner" class="p-4 sm:p-5 rounded-3xl border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-lg shrink-0">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="subPlanBadge" class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                                3-दिवसीय फ़्री ट्रायल (Free Trial)
+                            </span>
+                            <span class="text-xs text-slate-500 font-bold">समय शेष:</span>
+                        </div>
+                        <div class="text-base sm:text-lg font-black text-slate-900 font-mono tracking-tight mt-0.5" id="subRemainingCountdown">
+                            02 दिन 14 घंटे 32 मिनट 10 सेकंड
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button type="button" onclick="openShopkeeperRenewModal()" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>प्लान रिन्यू / अपग्रेड करें</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Top Welcome Banner -->
+            <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-700">
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-xs font-semibold mb-2">
+                            <i class="fa-solid fa-store"></i> <span id="adminShopBadgeName">आदर्श सेवा केंद्र</span> • प्रमाणित दुकानदार
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-black tracking-tight">
+                            स्वागत है, <span id="adminWelcomeName" class="text-amber-400">संचालक</span>!
+                        </h2>
+                        <p class="text-slate-300 text-xs sm:text-sm mt-1">
+                            यह आपका व्यक्तिगत दुकान डैशबोर्ड है। आपके ऑर्डर्स, रेट्स और प्रिंटर मॉडल पूरी तरह अलग व सुरक्षित हैं।
+                        </p>
+                    </div>
+
+                    <!-- Quick Action Toggles & QR Standee Button -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="button" onclick="openShopQrModal()" class="px-3.5 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-md">
+                            <i class="fa-solid fa-qrcode text-sm"></i>
+                            <span>दुकान QR जनरेट करें (Print QR)</span>
+                        </button>
+
+                        <button type="button" onclick="openPrinterSetupModal()" class="px-3.5 py-2.5 rounded-xl font-extrabold text-xs tracking-wide transition flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-md">
+                            <i class="fa-solid fa-sliders text-sm"></i>
+                            <span>प्रिंटर मॉडल सेटअप</span>
+                        </button>
+
+                        <!-- Auto-Print Toggle -->
+                        <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 px-3.5 py-2 rounded-xl shadow-xs">
+                            <i class="fa-solid fa-print text-amber-400 text-sm"></i>
+                            <div class="text-left">
+                                <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">ऑटो-प्रिंट</span>
+                                <span id="autoPrintStatusLabel" class="text-xs font-bold text-emerald-400">सक्रिय (ON)</span>
+                            </div>
+                            <input type="checkbox" id="autoPrintToggle" checked onchange="toggleAutoPrint(this.checked)" 
+                                class="ml-2 w-4 h-4 text-brand-600 rounded cursor-pointer">
+                        </div>
+
+                        <!-- Shop Open/Close toggle -->
+                        <button type="button" onclick="toggleShopStatus()" id="statusToggleBtn" 
+                            class="px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-500 flex items-center gap-2">
+                            <i class="fa-solid fa-power-off"></i>
+                            <span id="shopStatusText">दुकान: खुली है (Open)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Metrics -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-700/80">
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-slate-400 text-xs font-medium block">मेरी दुकान के ऑर्डर्स</span>
+                        <span class="text-xl sm:text-2xl font-black text-white mt-1 block" id="adminTotalOrdersCount">0</span>
+                    </div>
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-slate-400 text-xs font-medium block">आज की कुल कमाई</span>
+                        <span class="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block" id="adminTotalRevenue">₹0.00</span>
+                    </div>
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-slate-400 text-xs font-medium block">दुकान नंबर (Shop Code)</span>
+                        <span class="text-xl sm:text-2xl font-mono font-black text-amber-400 mt-1 block" id="adminShopCodeDisplay">1042</span>
+                    </div>
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-slate-400 text-xs font-medium block">सक्रिय प्रिंटर मॉडल</span>
+                        <span class="text-xs sm:text-sm font-black text-purple-300 mt-1 block truncate" id="adminActiveBwPrinter">HP LaserJet M1005</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rates & Payment Gateway Settings Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Rates Form (7 Cols) -->
+                <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-tags text-brand-600"></i> आपकी दुकान के प्रिंट रेट्स (Price Settings)
+                        </h3>
+                        <span class="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">आइसोलेटेड रेट्स</span>
+                    </div>
+
+                    <form onsubmit="handleSaveRates(event)" class="space-y-4">
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                            <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">1. ब्लैक & व्हाइट प्रिंट</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">सिंगल साइड (1-सफे) दर ₹</label>
+                                    <input type="number" step="0.5" id="rateBwSingle" value="2.00" required
+                                        class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">डबल साइड (आगे-पीछे) दर ₹</label>
+                                    <input type="number" step="0.5" id="rateBwDouble" value="3.00" required
+                                        class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 space-y-3">
+                            <h4 class="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">2. कलर प्रिंट</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">सामान्य A4 कलर प्रिंट ₹</label>
+                                    <input type="number" step="1" id="rateColorNormal" value="10.00" required
+                                        class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">ग्लॉसी फोटो पेपर प्रिंट ₹</label>
+                                    <input type="number" step="1" id="rateColorPhoto" value="20.00" required
+                                        class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">लैमिनेशन दर ₹</label>
+                                <input type="number" step="1" id="rateLamination" value="20.00" required
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">स्कैनिंग दर ₹</label>
+                                <input type="number" step="1" id="rateScanning" value="5.00" required
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>इस दुकान के रेट सेव करें</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Payment Gateway Settings Form (5 Cols) -->
+                <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-purple-600"></i> ऑनलाइन पेमेंट गेटवे सेटिंग्स
+                        </h3>
+                        <span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                            Merchant Setup
+                        </span>
+                    </div>
+
+                    <form onsubmit="handleSaveCashfreeSettings(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                पेमेंट वातावरण (Environment)
+                            </label>
+                            <select id="cfEnvironment" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="sandbox">Sandbox (Testing / Demo Mode)</option>
+                                <option value="production">Production (असली बैंक खाता Live Mode)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                मर्चेंट App ID / Client ID
+                            </label>
+                            <input type="text" id="cfAppId" placeholder="उदा: TEST1029384756..."
+                                class="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                मर्चेंट Secret Key
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="cfSecretKey" placeholder="उदा: cfsk_ma_live_..."
+                                    class="w-full pr-10 px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                <button type="button" onclick="toggleSecretVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400">
+                                    <i class="fa-solid fa-eye text-xs" id="secretEyeIcon"></i>
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">✓ सही क्रेडेंशियल्स डालें ताकि ग्राहक का पेमेंट सीधे आपके बैंक खाते में पहुंचे।</p>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i>
+                            <span>पेमेंट गेटवे सेटिंग्स सुरक्षित करें</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Orders Table for this Shopkeeper -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-600"></i> मेरी दुकान पर आए प्रिंट ऑर्डर्स
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">केवल इस 4-अंकीय दुकान नंबर पर ग्राहकों द्वारा भेजे गए ऑर्डर्स यहाँ दिखते हैं।</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="clearCompletedOrders()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+                            <i class="fa-solid fa-trash-can mr-1"></i> पूरे हुए हटाएं
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] sm:text-[11px] font-bold tracking-wider">
+                                <th class="py-3.5 px-4">Order ID & समय</th>
+                                <th class="py-3.5 px-4">ग्राहक</th>
+                                <th class="py-3.5 px-4">दस्तावेज़</th>
+                                <th class="py-3.5 px-4">प्रिंट प्रकार</th>
+                                <th class="py-3.5 px-4">राशि</th>
+                                <th class="py-3.5 px-4">पेमेंट स्थिति</th>
+                                <th class="py-3.5 px-4">स्टेटस</th>
+                                <th class="py-3.5 px-4 text-right">प्रिंट एक्शन</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Dynamic Table Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="noOrdersPlaceholder" class="hidden py-12 text-center text-slate-400">
+                    <i class="fa-solid fa-inbox text-4xl mb-2 block opacity-40"></i>
+                    <p class="text-sm font-medium">आपकी दुकान पर अभी तक कोई प्रिंट ऑर्डर नहीं आया है।</p>
+                    <p class="text-xs text-slate-400 mt-1">काउंटर स्टैंडी पोस्टर से ग्राहक को QR स्कैन करने को कहें।</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 3: SUPER ADMIN (PLATFORM OWNER) PORTAL -->
+        <!-- ============================================== -->
+        <section id="viewSuperAdmin" class="hidden space-y-8 transition-all duration-300">
+            <!-- Super Admin Top Header -->
+            <div class="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-purple-800/80 relative overflow-hidden">
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-300 text-xs font-black mb-2">
+                            <i class="fa-solid fa-crown"></i> मास्टर प्लेटफ़ॉर्म एडमिन कंट्रोल (कमाई व सब्सक्रिप्शन)
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-black tracking-tight">
+                            सुपर एडमिन डैशबोर्ड
+                        </h2>
+                        <p class="text-slate-300 text-xs sm:text-sm mt-1">
+                            यहाँ से आप सभी दुकानदारों के 3-दिन के फ़्री ट्रायल, मासिक सब्सक्रिप्शन फीस (₹/महीना) तय कर सकते हैं, तथा किसी भी दुकानदार को फ्री में अनलॉक या लॉक कर सकते हैं।
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="closeSuperAdminView()" class="px-4 py-2.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 transition flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <span>कियोस्क पोर्टल पर लौटें</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Super Admin Stats -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-purple-800/60">
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-purple-300 text-xs font-medium block">कुल पंजीकृत दुकानें</span>
+                        <span class="text-xl sm:text-2xl font-black text-white mt-1 block" id="superStatTotalShops">0</span>
+                    </div>
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-purple-300 text-xs font-medium block">सक्रिय (Active / Trial)</span>
+                        <span class="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block" id="superStatActiveShops">0</span>
+                    </div>
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-purple-300 text-xs font-medium block">समाप्त / लॉक दुकानें</span>
+                        <span class="text-xl sm:text-2xl font-black text-rose-400 mt-1 block" id="superStatLockedShops">0</span>
+                    </div>
+                    <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                        <span class="text-purple-300 text-xs font-medium block">तय मासिक शुल्क</span>
+                        <span class="text-xl sm:text-2xl font-black text-amber-400 mt-1 block" id="superStatCurrentFee">₹299/माह</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Platform Monetization Pricing & Admin Cashfree Setup -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Pricing Configuration Form -->
+                <div class="lg:col-span-6 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-money-bill-trend-up text-emerald-600"></i> सब्सक्रिप्शन प्लान व ट्रायल सेटिंग्स
+                        </h3>
+                        <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold border border-emerald-200">
+                            कमाई मॉडल
+                        </span>
+                    </div>
+
+                    <form onsubmit="handleSaveSuperAdminPricing(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                नए दुकानदार के लिए फ़्री ट्रायल के दिन (Free Trial Days) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="number" min="0" max="90" id="superTrialDays" value="3" required
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                            <p class="text-[11px] text-slate-500 mt-1">रजिस्टर होते ही दुकानदार का ट्रायल काउंटडाउन चालू हो जाएगा।</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                मासिक सब्सक्रिप्शन शुल्क (Monthly Fee ₹) <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-sm">₹</span>
+                                <input type="number" min="1" step="1" id="superMonthlyPrice" value="299" required
+                                    class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">ट्रायल खत्म होने के बाद दुकानदार को यह शुल्क देकर रिन्यू करना होगा।</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                एडमिन संपर्क मोबाइल नंबर
+                            </label>
+                            <input type="tel" id="superAdminContactPhone" value="9117327903" maxlength="10" placeholder="10 अंक"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                        </div>
+
+                        <button type="submit" class="w-full py-3.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>सब्सक्रिप्शन सेटिंग्स सुरक्षित करें</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Super Admin Cashfree Payment Gateway Setup -->
+                <div class="lg:col-span-6 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-purple-600"></i> एडमिन Cashfree पेमेंट गेटवे (सब्सक्रिप्शन कलेक्शन)
+                        </h3>
+                        <span class="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg font-bold border border-purple-200">
+                            Super Admin Gateway
+                        </span>
+                    </div>
+
+                    <form onsubmit="handleSaveSuperAdminCashfree(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                पेमेंट वातावरण (Environment)
+                            </label>
+                            <select id="superCfEnvironment" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+                                <option value="sandbox">Sandbox (Testing / Demo Mode)</option>
+                                <option value="production">Production (असली बैंक खाता Live Mode)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                सुपर एडमिन App ID (Client ID) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" id="superCfAppId" placeholder="उदा: TEST1029384..." required
+                                class="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                                सुपर एडमिन Secret Key <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="superCfSecretKey" placeholder="उदा: cfsk_ma_live_..." required
+                                    class="w-full pr-10 px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-xs sm:text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                                <button type="button" onclick="toggleSuperAdminSecretVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400">
+                                    <i class="fa-solid fa-eye text-xs" id="superSecretEyeIcon"></i>
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">✓ सभी दुकानदारों का सब्सक्रिप्शन पेमेंट सीधे आपके बैंक खाते में पहुंचेगा।</p>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i>
+                            <span>एडमिन गेटवे सेटिंग्स सेव करें</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Auto-Print Kiosk Guide Card for Admin -->
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-3xl p-6 text-white border border-slate-800 space-y-3">
+                <div class="flex items-center gap-2 text-amber-400 font-black text-sm">
+                    <i class="fa-solid fa-robot text-lg"></i>
+                    <span>बिना किसी क्लिक के 100% ऑटोमैटिक प्रिंट (Zero-Click Kiosk Mode):</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    दुकान के कंप्यूटर पर ब्राउज़र का डिफ़ॉल्ट प्रिंट डायलॉग बंद करने के लिए Chrome को <code class="bg-white/20 px-2 py-0.5 rounded text-amber-300 font-mono">--kiosk-printing</code> मोड में चालू करें। जैसे ही ग्राहक का पेमेंट पूरा होगा, बिना किसी बटन पर क्लिक किए प्रिंटर से सीधे प्रिंट निकल आएगा!
+                </p>
+                <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+                    <span class="bg-white/10 px-3 py-1 rounded-lg border border-white/10">1. Windows में अपना मुख्य प्रिंटर Default सेट करें</span>
+                    <span class="bg-white/10 px-3 py-1 rounded-lg border border-white/10">2. Chrome शॉर्टकट के Target में <code class="text-amber-300">--kiosk-printing</code> जोड़ें</span>
+                    <span class="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-lg border border-emerald-400/30 font-bold">✓ ऑटो-प्रिंटर पूरी तरह तैयार</span>
+                </div>
+            </div>
+
+            <!-- Shopkeepers Management Table -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-purple-600"></i> सभी पंजीकृत दुकानदार (Shopkeeper Management)
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">यहाँ से किसी भी दुकानदार का सब्सक्रिप्शन बढ़ाएं, लॉक करें या हमेशा के लिए हटाएं।</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="renderSuperAdminShopkeepersTable()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate"></i> रीफ्रेश लिस्ट
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] sm:text-[11px] font-bold tracking-wider">
+                                <th class="py-3.5 px-4">दुकान नंबर</th>
+                                <th class="py-3.5 px-4">दुकान व संचालक</th>
+                                <th class="py-3.5 px-4">मोबाइल नंबर</th>
+                                <th class="py-3.5 px-4">प्लान स्थिति</th>
+                                <th class="py-3.5 px-4">समाप्ति तिथि (Expiry)</th>
+                                <th class="py-3.5 px-4">स्टेटस</th>
+                                <th class="py-3.5 px-4 text-right">एडमिन एक्शन</th>
+                            </tr>
+                        </thead>
+                        <tbody id="superAdminShopsTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Dynamic Shopkeeper Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="noSuperAdminShopsPlaceholder" class="hidden py-10 text-center text-slate-400">
+                    <i class="fa-solid fa-store-slash text-3xl mb-2 block opacity-40"></i>
+                    <p class="text-sm font-medium">कोई अन्य दुकानदार पंजीकृत नहीं है।</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- SUPER ADMIN PIN MODAL -->
+    <!-- ============================================== -->
+    <div id="superAdminPinModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-live">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-700 to-indigo-600 text-white mx-auto flex items-center justify-center text-2xl shadow-lg shadow-purple-600/30">
+                    <i class="fa-solid fa-crown text-amber-400"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900">सुपर एडमिन सुरक्षा PIN</h3>
+                <p class="text-xs text-slate-500">मालिक डैशबोर्ड खोलने के लिए 4 अंकों का गुप्त PIN दर्ज करें।</p>
+            </div>
+
+            <form onsubmit="handleSuperAdminPinSubmit(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="inputSuperAdminPin" required maxlength="6" placeholder="PIN दर्ज करें (डिफ़ॉल्ट 9999)"
+                        class="w-full py-3 px-4 rounded-xl border-2 border-slate-300 font-mono font-black text-2xl text-center tracking-widest text-slate-900 focus:border-purple-600 focus:ring-2 focus:ring-purple-500 outline-none">
+                </div>
+
+                <div id="superPinError" class="hidden text-xs font-bold text-rose-600 text-center">
+                    गलत PIN! कृपया सही मास्टर PIN डालें।
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                    <button type="button" onclick="closeSuperAdminPinModal()" class="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                        रद्द करें
+                    </button>
+                    <button type="submit" class="w-2/3 py-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        <span>पैनल खोलें</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- DUKANDAR SUBSCRIPTION EXPIRED / RENEW MODAL -->
+    <!-- ============================================== -->
+    <div id="dukandarExpiredModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 text-center">
+            <div class="w-16 h-16 rounded-3xl bg-rose-100 text-rose-600 mx-auto flex items-center justify-center text-3xl shadow-sm">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            
+            <div class="space-y-1">
+                <span class="inline-block px-3 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[11px] rounded-full uppercase tracking-wider">
+                    सब्सक्रिप्शन समाप्त (Expired)
+                </span>
+                <h3 class="text-xl font-black text-slate-900">आपकी दुकान का प्लान समाप्त हो चुका है!</h3>
+                <p class="text-xs text-slate-500">
+                    कियोस्क पोर्टल और ऑटो-प्रिंट चालू रखने के लिए कृपया सब्सक्रिप्शन रिन्यू करें।
+                </p>
+            </div>
+
+            <div class="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-brand-50 rounded-2xl border border-purple-200 text-left space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-600 font-medium">प्लान:</span>
+                    <span class="font-bold text-slate-800">मासिक कियोस्क एक्सेस (30 दिन)</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-600 font-medium">सब्सक्रिप्शन शुल्क:</span>
+                    <span class="font-black text-purple-700 text-base" id="expiredModalFeeDisplay">₹299 / महीना</span>
+                </div>
+                <div class="pt-2 border-t border-purple-200/60 flex justify-between items-center text-xs">
+                    <span class="text-slate-600 font-medium">भुगतान माध्यम:</span>
+                    <span class="font-bold text-slate-800 flex items-center gap-1">
+                        <i class="fa-solid fa-shield text-purple-600"></i> आधिकारिक पेमेंट गेटवे
+                    </span>
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <button type="button" onclick="paySubscriptionViaCashfree()" id="btnRenewSubscriptionGateway"
+                    class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black text-sm shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 active:scale-[0.98]">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>ऑनलाइन पे करें व तुरंत अनलॉक करें (₹<span id="expiredModalPayBtnText">299</span>)</span>
+                </button>
+                <p class="text-[11px] text-slate-500">
+                    UPI, PhonePe, GPay, Paytm, डेबिट/क्रेडिट कार्ड से पेमेंट होते ही आपकी दुकान <strong>तुरंत अपने-आप अनलॉक</strong> हो जाएगी।
+                </p>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <button type="button" onclick="dukandarLogout()" class="text-xs font-bold text-rose-600 hover:underline">
+                    लॉगआउट करें
+                </button>
+                <button type="button" onclick="openSuperAdminPinModal()" class="text-xs font-bold text-purple-700 hover:underline">
+                    मालिक हैं? यहाँ से अनलॉक करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- REAL CASHFREE PAYMENT FAILED / ERROR MODAL -->
+    <!-- ============================================== -->
+    <div id="paymentErrorModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 mx-auto flex items-center justify-center text-2xl shadow-sm">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-900">भुगतान अधूरा / विफल रहा</h3>
+                <p class="text-xs text-slate-500">आपके खाते से पैसे नहीं कटे हैं या भुगतान बीच में रद्द हो गया।</p>
+            </div>
+
+            <!-- Error Detailed Reason Box -->
+            <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs space-y-2">
+                <span class="block font-bold text-rose-900 uppercase tracking-wider text-[10px]">विफलता का वास्तविक कारण (Reason):</span>
+                <p id="paymentErrorDetailedText" class="text-rose-800 font-semibold leading-relaxed">
+                    उपयोगकर्ता द्वारा भुगतान खिड़की को बंद कर दिया गया अथवा बैंक सर्वर से पुष्टि नहीं मिली।
+                </p>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <button type="button" onclick="closePaymentErrorModal()" 
+                    class="w-full py-3 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>दोबारा भुगतान का प्रयास करें</span>
+                </button>
+                <button type="button" onclick="closePaymentErrorModal(); confirmManualCashPayment();"
+                    class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                    काउंटर पर नकद (Cash) भुगतान करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MANDATORY CUSTOMER GATEKEEPER MODAL -->
+    <!-- ============================================== -->
+    <div id="customerGateModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-live">
+            
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white mx-auto flex items-center justify-center text-2xl shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">दुकान सत्यापन (Shop Verification)</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    दस्तावेज़ अपलोड करने के लिए काउंटर पर लगे स्टैंडी पोस्टर से <strong>4 अंकों का दुकान नंबर</strong> और अपना नाम दर्ज करें।
+                </p>
+            </div>
+
+            <form onsubmit="handleCustomerGateSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        आपका नाम (Your Name) <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                            <i class="fa-regular fa-user text-sm"></i>
+                        </span>
+                        <input type="text" id="gateCustomerName" required placeholder="अपना पूरा नाम दर्ज करें"
+                            class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            4-अंकों का दुकान नंबर (Shop Code) <span class="text-rose-500">*</span>
+                        </label>
+                        <span class="text-[10px] text-amber-600 font-bold">काउंटर पोस्टर पर देखें</span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="gateShopCode" required maxlength="4" pattern="[0-9]{4}" placeholder="उदा: 1042"
+                            class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-center font-mono font-black text-2xl tracking-widest text-slate-900 focus:border-brand-600 focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <p class="text-[10px] text-slate-400 text-center mt-1">प्रत्येक दुकान का रेट, नाम और प्रिंटर अलग होता है।</p>
+                </div>
+
+                <div id="gateErrorNotice" class="hidden p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm shrink-0"></i>
+                    <span id="gateErrorText">यह दुकान नंबर पंजीकृत नहीं है! कृपया सही कोड दर्ज करें।</span>
+                </div>
+
+                <button type="submit" id="btnGateSubmit"
+                    class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-brand-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    <span>दुकान कनेक्ट करें व प्रिंट खोलें</span>
+                </button>
+            </form>
+
+            <div class="pt-2 border-t border-slate-100 text-center">
+                <button type="button" onclick="handleDukandarBypassGate()" class="text-xs text-brand-600 hover:underline font-bold">
+                    क्या आप दुकानदार हैं? यहाँ से साइन इन करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- DUKANDAR LOGIN MODAL -->
+    <!-- ============================================== -->
+    <div id="dukandarLoginModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-store"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">दुकानदार साइन इन</h3>
+                        <p class="text-xs text-slate-500">अपने पंजीकृत मोबाइल नंबर से लॉगिन करें</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDukandarAuthModals()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleDukandarLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                        मोबाइल नंबर (10 अंक) <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold text-xs">+91</span>
+                        <input type="tel" id="loginDukandarPhone" required pattern="[0-9]{10}" maxlength="10" placeholder="उदा: 9876543210"
+                            class="w-full pl-12 pr-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                        पासवर्ड <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="loginDukandarPassword" required placeholder="अपना पासवर्ड दर्ज करें"
+                            class="w-full pr-10 px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none">
+                        <button type="button" onclick="togglePasswordVis('loginDukandarPassword', this)" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>लॉगिन करें (Sign In)</span>
+                </button>
+            </form>
+
+            <div class="border-t border-slate-100 pt-3 text-center">
+                <p class="text-xs text-slate-600">
+                    नया दुकानदार हैं? 
+                    <button type="button" onclick="openSignupFromLogin()" class="font-bold text-brand-600 hover:underline ml-1">
+                        यहाँ नया खाता बनाएं (3-दिन फ़्री ट्रायल)
+                    </button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- DUKANDAR SIGNUP MODAL (WITH LIVE DEMO OTP) -->
+    <!-- ============================================== -->
+    <div id="dukandarSignupModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">नया दुकानदार पंजीकरण</h3>
+                        <p class="text-xs text-slate-500">3-दिन का मुफ़्त ट्रायल व यूनिक 4-अंकीय कोड मिलेगा</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDukandarAuthModals()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- STEP 1: Details Input -->
+            <div id="signupStep1" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        दुकानदार का नाम <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="regOwnerName" placeholder="उदा: Rahul Kumar"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        दुकान का नाम <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="regShopName" placeholder="उदा: राहुल फोटोस्टेट & प्रिंट"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        दुकान का पता <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="regAddress" placeholder="उदा: मेन रोड, पटना"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        मोबाइल नंबर (10 अंक) <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-xs">+91</span>
+                        <input type="tel" id="regPhone" pattern="[0-9]{10}" maxlength="10" placeholder="उदा: 9876543210"
+                            class="w-full pl-11 pr-3 py-2.5 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 font-medium">
+                    <i class="fa-solid fa-gift text-amber-600 mr-1"></i> पंजीकरण के तुरंत बाद <strong><span id="signupTrialDaysLabel">3</span> दिन का फ़ुल फ़्री ट्रायल</strong> सक्रिय होगा।
+                </div>
+
+                <button type="button" onclick="sendDemoOtp()" 
+                    class="w-full mt-2 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>OTP कोड भेजें</span>
+                </button>
+            </div>
+
+            <!-- STEP 2: OTP Verification & Password -->
+            <div id="signupStep2" class="hidden space-y-4">
+                <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-1">
+                    <span class="text-xs font-semibold text-emerald-800 block">सत्यापन OTP कोड:</span>
+                    <span id="demoOtpDisplayBadge" class="text-2xl font-mono font-black text-emerald-700 tracking-widest block">1234</span>
+                    <p class="text-[10px] text-emerald-600">यह कोड नीचे दर्ज करें:</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        प्राप्त OTP कोड दर्ज करें <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="regEnteredOtp" maxlength="6" placeholder="OTP कोड"
+                        class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-mono font-bold text-center text-base tracking-widest text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                            नया पासवर्ड <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="password" id="regNewPassword" placeholder="पासवर्ड बनाएं"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                            पासवर्ड कन्फर्म करें <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="password" id="regConfirmPassword" placeholder="दोबारा लिखें"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <button type="button" onclick="backToSignupStep1()" class="w-1/3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                        वापस
+                    </button>
+                    <button type="button" onclick="verifyOtpAndRegisterDukandar()" class="w-2/3 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check"></i>
+                        <span>ट्रायल चालू करें व खाता बनाएं</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-3 text-center">
+                <p class="text-xs text-slate-500">
+                    पहले से खाता है? 
+                    <button type="button" onclick="openLoginFromSignup()" class="font-bold text-brand-600 hover:underline ml-1">
+                        यहाँ साइन इन करें
+                    </button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SHOP QR STANDEE MODAL -->
+    <!-- ============================================== -->
+    <div id="shopQrModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar text-center">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2 text-left">
+                    <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-base">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base">दुकान QR स्टैंडी पोस्टर</h3>
+                        <p class="text-[11px] text-slate-500">काउंटर पर लगाने हेतु तैयार</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeShopQrModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Standee Card Preview -->
+            <div class="p-5 bg-gradient-to-b from-indigo-50/70 to-slate-50 rounded-2xl border-2 border-indigo-200/80 space-y-3">
+                <span class="inline-block px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    स्मार्ट प्रिंट कियोस्क
+                </span>
+                
+                <h4 id="standeeShopName" class="text-lg font-black text-slate-900">आदर्श सेवा केंद्र</h4>
+                <p id="standeeOwnerPhone" class="text-xs font-bold text-slate-600">संचालक: Ansal Kumar • मो: 9117327903</p>
+                <p id="standeeAddress" class="text-[11px] text-slate-500">पता: समस्तीपुर, बिहार</p>
+
+                <!-- Highlighting the 4-digit shop number on the Standee -->
+                <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-2 rounded-2xl border-2 border-amber-600 shadow-sm inline-block">
+                    <span class="block text-[10px] font-black uppercase tracking-wider">दुकान नंबर (Shop Code)</span>
+                    <span id="standeeShopCodeBadge" class="text-3xl font-black font-mono tracking-widest">1042</span>
+                </div>
+
+                <!-- High-Res QR Box -->
+                <div class="bg-white p-3.5 rounded-2xl border-2 border-slate-900 inline-block shadow-md my-2">
+                    <div id="shopStandeeQrCode" class="w-[200px] h-[200px] mx-auto flex items-center justify-center"></div>
+                </div>
+
+                <div class="bg-white/90 p-2.5 rounded-xl border border-indigo-100 text-xs font-bold text-indigo-950">
+                    📲 स्कैन करें • दुकान नंबर <span id="standeeCodeHint" class="text-amber-600 font-black">1042</span> दर्ज करें • प्रिंट पाएं
+                </div>
+
+                <p class="text-[10px] text-slate-400 font-mono break-all pt-1">
+                    https://anshalkumar644.github.io/Adarsh-Seva-Tech-/
+                </p>
+            </div>
+
+            <!-- Print Buttons -->
+            <div class="flex items-center gap-2 pt-2">
+                <button type="button" onclick="closeShopQrModal()" class="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                    बंद करें
+                </button>
+                <button type="button" onclick="printShopStandee()" class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-print"></i>
+                    <span>QR पोस्टर प्रिंट करें (A4 Standee)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- PRINTER SELECTION & MODEL SETUP MODAL -->
+    <!-- ============================================== -->
+    <div id="printerSetupModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-print"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">प्रिंटर मॉडल व रूटिंग सेटअप</h3>
+                        <p class="text-xs text-slate-500">QR Se Print ऑटोमैटिक हार्डवेयर मैपिंग</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closePrinterSetupModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleSavePrinterConfig(event)" class="space-y-4">
+                <!-- B&W Dedicated -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">1. ब्लैक & व्हाइट प्रिंटर</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">प्रिंटर ब्रांड</label>
+                            <select id="printerBwBrand" onchange="autoFillModelSuggestions('bw')" 
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="HP">HP (Hewlett-Packard)</option>
+                                <option value="Canon">Canon</option>
+                                <option value="Brother">Brother</option>
+                                <option value="Epson">Epson</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">प्रिंटर मॉडल नंबर</label>
+                            <input type="text" id="printerBwModel" value="HP LaserJet M1005 MFP" required
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Dedicated -->
+                <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-200 space-y-3">
+                    <h4 class="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">2. कलर प्रिंटर</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">प्रिंटर ब्रांड</label>
+                            <select id="printerColorBrand" onchange="autoFillModelSuggestions('color')" 
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="Epson">Epson InkTank</option>
+                                <option value="Canon">Canon PIXMA / MegaTank</option>
+                                <option value="HP">HP Smart Tank</option>
+                                <option value="Brother">Brother Ink Tank</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">प्रिंटर मॉडल नंबर</label>
+                            <input type="text" id="printerColorModel" value="Epson EcoTank L3210 Series" required
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <button type="button" onclick="closePrinterSetupModal()" class="w-1/3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                        रद्द करें
+                    </button>
+                    <button type="submit" class="w-2/3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>प्रिंटर सेटिंग्स सेव करें</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+            <div class="text-center border-b border-slate-100 pb-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center text-xl mb-2">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-900" id="receiptShopHeader">आदर्श सेवा केंद्र</h3>
+                <p class="text-xs text-slate-500" id="receiptOwnerHeader">स्मार्ट प्रिंट रसीद</p>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 border border-slate-200">
+                <div class="flex justify-between">
+                    <span class="text-slate-500">ऑर्डर क्रमांक:</span>
+                    <span class="font-mono font-bold text-slate-800" id="receiptOrderId">#ASK-0000</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">दुकान नंबर:</span>
+                    <span class="font-mono font-bold text-purple-700" id="receiptShopCode">#1042</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">दस्तावेज़:</span>
+                    <span class="font-bold text-slate-800 truncate max-w-[180px]" id="receiptFileName">doc.pdf</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">प्रिंट प्रकार:</span>
+                    <span class="font-bold text-slate-800" id="receiptPrintType">B&W 1-Side</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">पन्ने व कॉपियां:</span>
+                    <span class="font-bold text-slate-800" id="receiptPagesInfo">1 Page × 1 Copy</span>
+                </div>
+                <div class="flex justify-between border-t border-slate-200 pt-2 text-sm">
+                    <span class="font-bold text-slate-800">कुल भुगतान:</span>
+                    <span class="font-black text-emerald-700" id="receiptTotalAmount">₹2.00</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <button type="button" onclick="closeReceiptModal()" class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                    बंद करें
+                </button>
+                <button type="button" onclick="window.print()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>रसीद प्रिंट करें</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewDocModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="font-bold text-slate-900" id="previewModalTitle">फ़ाइल प्रीव्यू</h3>
+                <button type="button" onclick="closePreviewModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="previewModalBody" class="flex-1 overflow-auto custom-scrollbar flex items-center justify-center p-2 min-h-[300px]"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-xs sm:text-sm font-bold bg-white text-slate-800 border-slate-200">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-500 text-base"></i>
+        <span id="toastMessage">नोटिफिकेशन</span>
+    </div>
+
+    <!-- Hidden Print Execution Iframe -->
+    <iframe id="printExecutionIframe" class="w-0 h-0 border-0 absolute -left-[9999px] -top-[9999px]"></iframe>
+
+    <!-- Firebase SDK (ES Module) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbSgGbxLHhpzx7DbasW6-34aO2Ju5ltfw",
+            authDomain: "adarsh-seva-tech-47c97.firebaseapp.com",
+            projectId: "adarsh-seva-tech-47c97",
+            storageBucket: "adarsh-seva-tech-47c97.firebasestorage.app",
+            messagingSenderId: "439383650935",
+            appId: "1:439383650935:web:c54f588c80c4ca85590c72"
+        };
+
+        let app = null;
+        let auth = null;
+        let db = null;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.warn("Cloud Init note:", e);
+        }
+
+        let unsubShopListener = null;
+        let unsubOrdersListener = null;
+
+        async function initCloudModule() {
+            if (!app || !auth || !db) return;
+            try {
+                if (!auth.currentUser) {
+                    await signInAnonymously(auth);
+                }
+                window.appState.cloudAuthReady = true;
+                window.appState.cloudConnected = true;
+
+                if (window.appState.dukandarAuth.isLoggedIn) {
+                    window.attachShopDataListeners(window.appState.dukandarAuth.myShopCode);
+                } else if (window.appState.customerSession.verified) {
+                    window.attachShopDataListeners(window.appState.customerSession.enteredShopCode);
+                }
+            } catch (err) {
+                console.warn("Cloud Auth Note:", err);
+            }
+        }
+
+        window.attachShopDataListeners = function(shopCode) {
+            if (!shopCode) return;
+            shopCode = String(shopCode).trim();
+            window.appState.activeShopCode = shopCode;
+            window.appState.shop.shopCode = shopCode;
+
+            if (unsubShopListener) unsubShopListener();
+            if (unsubOrdersListener) unsubOrdersListener();
+
+            // Load shop local cache first
+            try {
+                const cachedShop = localStorage.getItem(`ask_shop_${shopCode}_config`);
+                if (cachedShop) {
+                    const parsed = JSON.parse(cachedShop);
+                    if (parsed.shop) window.appState.shop = { ...window.appState.shop, ...parsed.shop };
+                    if (parsed.rates) window.appState.rates = { ...window.appState.rates, ...parsed.rates };
+                    if (parsed.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...parsed.cashfree };
+                    if (parsed.printers) window.appState.printers = { ...window.appState.printers, ...parsed.printers };
+                    syncUiFromState(false);
+                }
+                const cachedOrders = localStorage.getItem(`ask_shop_${shopCode}_orders`);
+                if (cachedOrders) {
+                    window.appState.orders = JSON.parse(cachedOrders);
+                    if (typeof renderOrdersTable === 'function') renderOrdersTable();
+                    if (typeof updateStatsUI === 'function') updateStatsUI();
+                }
+            } catch (e) {}
+
+            if (!db || !window.appState.cloudAuthReady) return;
+
+            // Listen exclusively to THIS SHOP's config
+            const shopDocRef = doc(db, 'shops', shopCode);
+            unsubShopListener = onSnapshot(shopDocRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.shop) window.appState.shop = { ...window.appState.shop, ...data.shop };
+                    if (data.rates) window.appState.rates = { ...window.appState.rates, ...data.rates };
+                    if (data.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...data.cashfree };
+                    if (data.printers) window.appState.printers = { ...window.appState.printers, ...data.printers };
+                    
+                    try {
+                        localStorage.setItem(`ask_shop_${shopCode}_config`, JSON.stringify({
+                            shop: window.appState.shop,
+                            rates: window.appState.rates,
+                            cashfree: window.appState.cashfree,
+                            printers: window.appState.printers
+                        }));
+                    } catch (e) {}
+                    syncUiFromState(false);
+                }
+            }, (err) => console.warn(`Shop ${shopCode} sync:`, err));
+
+            // Listen exclusively to THIS SHOP's orders subcollection
+            const ordersColRef = collection(db, 'shops', shopCode, 'orders');
+            unsubOrdersListener = onSnapshot(ordersColRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach((docSnap) => fetched.push({ _docId: docSnap.id, ...docSnap.data() }));
+                fetched.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                window.appState.orders = fetched;
+                try {
+                    localStorage.setItem(`ask_shop_${shopCode}_orders`, JSON.stringify(fetched));
+                } catch (e) {}
+                if (typeof renderOrdersTable === 'function') renderOrdersTable();
+                if (typeof updateStatsUI === 'function') updateStatsUI();
+            }, (err) => console.warn(`Shop ${shopCode} orders sync:`, err));
+        };
+
+        window.fetchShopByCode = async function(shopCode) {
+            shopCode = String(shopCode).trim();
+            const accounts = getDukandarAccounts();
+            for (let ph in accounts) {
+                if (String(accounts[ph].shopCode) === shopCode) {
+                    return {
+                        shop: {
+                            name: accounts[ph].shopName,
+                            owner: accounts[ph].ownerName,
+                            phone: accounts[ph].phone,
+                            address: accounts[ph].address,
+                            shopCode: shopCode,
+                            isOpen: accounts[ph].isOpen !== false,
+                            autoPrint: true
+                        },
+                        rates: accounts[ph].rates || window.appState.rates,
+                        cashfree: accounts[ph].cashfree || window.appState.cashfree,
+                        printers: accounts[ph].printers || window.appState.printers,
+                        subscription: accounts[ph].subscription || null
+                    };
+                }
+            }
+
+            if (shopCode === "1042") {
+                return {
+                    shop: { ...window.appState.shop, shopCode: "1042" },
+                    rates: { ...window.appState.rates },
+                    cashfree: { ...window.appState.cashfree },
+                    printers: { ...window.appState.printers }
+                };
+            }
+
+            if (db && window.appState.cloudAuthReady) {
+                try {
+                    const shopDocRef = doc(db, 'shops', shopCode);
+                    const snap = await getDoc(shopDocRef);
+                    if (snap.exists()) return snap.data();
+                } catch (err) {}
+            }
+            return null;
+        };
+
+        window.saveSettingsToCloud = async function() {
+            const shopCode = String(window.appState.shop.shopCode || window.appState.activeShopCode || "1042").trim();
+            const payload = {
+                shop: { ...window.appState.shop, shopCode: shopCode },
+                rates: { ...window.appState.rates },
+                cashfree: { ...window.appState.cashfree },
+                printers: { ...window.appState.printers }
+            };
+
+            try {
+                localStorage.setItem(`ask_shop_${shopCode}_config`, JSON.stringify(payload));
+                const accounts = getDukandarAccounts();
+                const curPhone = window.appState.dukandarAuth.currentPhone;
+                if (curPhone && accounts[curPhone]) {
+                    accounts[curPhone].shopName = window.appState.shop.name;
+                    accounts[curPhone].rates = window.appState.rates;
+                    accounts[curPhone].cashfree = window.appState.cashfree;
+                    accounts[curPhone].printers = window.appState.printers;
+                    saveDukandarAccounts(accounts);
+                }
+            } catch (e) {}
+
+            if (db && window.appState.cloudAuthReady) {
+                try {
+                    const ref = doc(db, 'shops', shopCode);
+                    await setDoc(ref, payload, { merge: true });
+                    showToast(`दुकान (#${shopCode}) सेटिंग्स सुरक्षित हो गईं!`, "success");
+                } catch (err) {
+                    showToast("सेटिंग्स सुरक्षित हैं!", "success");
+                }
+            } else {
+                showToast("सेटिंग्स सुरक्षित हैं!", "success");
+            }
+        };
+
+        window.createOrderInCloud = async function(orderObj) {
+            const shopCode = String(window.appState.activeShopCode || "1042").trim();
+            const enrichedOrder = { ...orderObj, shopCode: shopCode, timestamp: Date.now() };
+
+            if (db && window.appState.cloudAuthReady) {
+                try {
+                    const col = collection(db, 'shops', shopCode, 'orders');
+                    const added = await addDoc(col, enrichedOrder);
+                    enrichedOrder._docId = added.id;
+                } catch (err) {}
+            }
+
+            window.appState.orders.unshift(enrichedOrder);
+            try {
+                localStorage.setItem(`ask_shop_${shopCode}_orders`, JSON.stringify(window.appState.orders));
+            } catch (e) {}
+            if (typeof renderOrdersTable === 'function') renderOrdersTable();
+            if (typeof updateStatsUI === 'function') updateStatsUI();
+            return true;
+        };
+
+        window.updateOrderStatusInCloud = async function(docId, newStatus) {
+            const shopCode = String(window.appState.activeShopCode || "1042").trim();
+            if (!db || !window.appState.cloudAuthReady || !docId) return false;
+            try {
+                const ref = doc(db, 'shops', shopCode, 'orders', docId);
+                await updateDoc(ref, { status: newStatus });
+                return true;
+            } catch (err) {
+                return false;
+            }
+        };
+
+        window.addEventListener('load', () => {
+            initCloudModule();
+        });
+    </script>
+
+    <!-- Core Application Logic (Vanilla JavaScript) -->
+    <script>
+        const SHOP_BASE_PORTAL_URL = "https://anshalkumar644.github.io/Adarsh-Seva-Tech-/";
+
+        window.appState = {
+            activeShopCode: "1042",
+            shop: {
+                name: "आदर्श सेवा केंद्र",
+                owner: "Ansal Kumar",
+                phone: "9117327903",
+                address: "समस्तीपुर, बिहार",
+                shopCode: "1042",
+                isOpen: true,
+                autoPrint: true
+            },
+            customerSession: {
+                verified: false,
+                customerName: "",
+                enteredShopCode: ""
+            },
+            printers: {
+                bwBrand: "HP",
+                bwModel: "HP LaserJet M1005 MFP",
+                colorBrand: "Epson",
+                colorModel: "Epson EcoTank L3210 Series",
+                spoolMode: "system"
+            },
+            dukandarAuth: {
+                isLoggedIn: false,
+                currentPhone: null,
+                myShopCode: "1042"
+            },
+            rates: {
+                bwSingle: 2.0,
+                bwDouble: 3.0,
+                colorNormal: 10.0,
+                colorPhoto: 20.0,
+                lamination: 20.0,
+                scanning: 5.0
+            },
+            cashfree: {
+                environment: "sandbox",
+                appId: "",
+                secretKey: "",
+                apiVersion: "2023-08-01"
+            },
+            superAdmin: {
+                pin: "9999",
+                trialDays: 3,
+                monthlyFee: 299,
+                contactPhone: "9117327903",
+                cashfree: {
+                    environment: "sandbox",
+                    appId: "",
+                    secretKey: "",
+                    apiVersion: "2023-08-01"
+                }
+            },
+            orders: [],
+            currentView: "customer",
+            uploadedFileBase64: null,
+            uploadedFileType: null,
+            uploadedFileName: null,
+            uploadedFileBlobUrl: null,
+            pdfRenderedPages: [],
+            cloudConnected: false,
+            cloudAuthReady: false
+        };
+
+        let generatedDemoOtp = null;
+        let pendingSignupData = null;
+        let subscriptionTimerInterval = null;
+
+        // ==============================================
+        // DUKANDAR AUTH MODALS & NAVIGATION HANDLERS
+        // ==============================================
+        window.handleDukandarNavClick = function() {
+            if (window.appState.dukandarAuth && window.appState.dukandarAuth.isLoggedIn) {
+                switchView('admin');
+            } else {
+                openDukandarLoginModal();
+            }
+        };
+
+        window.openDukandarLoginModal = function() {
+            // Dismiss customer gate if open
+            const gate = document.getElementById('customerGateModal');
+            if (gate) gate.classList.add('hidden');
+
+            const loginModal = document.getElementById('dukandarLoginModal');
+            const signupModal = document.getElementById('dukandarSignupModal');
+            if (signupModal) signupModal.classList.add('hidden');
+            if (loginModal) {
+                loginModal.classList.remove('hidden');
+                const phoneInp = document.getElementById('loginDukandarPhone');
+                if (phoneInp) phoneInp.focus();
+            }
+        };
+
+        window.closeDukandarAuthModals = function() {
+            const loginModal = document.getElementById('dukandarLoginModal');
+            const signupModal = document.getElementById('dukandarSignupModal');
+            if (loginModal) loginModal.classList.add('hidden');
+            if (signupModal) signupModal.classList.add('hidden');
+
+            // If customer was unverified and shopkeeper is not logged in, restore gate
+            if (!window.appState.dukandarAuth.isLoggedIn && !window.appState.customerSession.verified) {
+                const gate = document.getElementById('customerGateModal');
+                if (gate) gate.classList.remove('hidden');
+            }
+        };
+
+        window.openSignupFromLogin = function() {
+            const loginModal = document.getElementById('dukandarLoginModal');
+            const signupModal = document.getElementById('dukandarSignupModal');
+            if (loginModal) loginModal.classList.add('hidden');
+            if (signupModal) {
+                signupModal.classList.remove('hidden');
+                backToSignupStep1();
+            }
+        };
+
+        window.openLoginFromSignup = function() {
+            const signupModal = document.getElementById('dukandarSignupModal');
+            const loginModal = document.getElementById('dukandarLoginModal');
+            if (signupModal) signupModal.classList.add('hidden');
+            if (loginModal) loginModal.classList.remove('hidden');
+        };
+
+        window.handleDukandarBypassGate = function() {
+            const gate = document.getElementById('customerGateModal');
+            if (gate) gate.classList.add('hidden');
+            openDukandarLoginModal();
+        };
+
+        window.togglePasswordVis = function(inputId, btn) {
+            const inp = document.getElementById(inputId);
+            if (!inp) return;
+            const icon = btn.querySelector('i');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                if (icon) icon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                inp.type = 'password';
+                if (icon) icon.className = 'fa-solid fa-eye text-xs';
+            }
+        };
+
+        window.handleDukandarLogin = function(e) {
+            e.preventDefault();
+            const phone = (document.getElementById('loginDukandarPhone').value || '').trim();
+            const password = (document.getElementById('loginDukandarPassword').value || '').trim();
+
+            if (!phone || phone.length !== 10) {
+                showToast("कृपया 10 अंकों का मान्य मोबाइल नंबर दर्ज करें!", "error");
+                return;
+            }
+
+            const accounts = getDukandarAccounts();
+            const user = accounts[phone];
+
+            if (!user) {
+                showToast("यह मोबाइल नंबर पंजीकृत नहीं है! कृपया पहले नया खाता बनाएं।", "error");
+                return;
+            }
+
+            if (user.password !== password) {
+                showToast("गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।", "error");
+                return;
+            }
+
+            // Authentication Successful
+            window.appState.dukandarAuth.isLoggedIn = true;
+            window.appState.dukandarAuth.currentPhone = phone;
+            window.appState.dukandarAuth.myShopCode = user.shopCode || "1042";
+            window.appState.activeShopCode = user.shopCode || "1042";
+
+            window.appState.shop.name = user.shopName || "मेरी दुकान";
+            window.appState.shop.owner = user.ownerName || "दुकानदार";
+            window.appState.shop.phone = user.phone || phone;
+            window.appState.shop.address = user.address || "";
+            window.appState.shop.shopCode = user.shopCode || "1042";
+
+            if (user.rates) window.appState.rates = { ...window.appState.rates, ...user.rates };
+            if (user.cashfree) window.appState.cashfree = { ...window.appState.cashfree, ...user.cashfree };
+            if (user.printers) window.appState.printers = { ...window.appState.printers, ...user.printers };
+
+            // Persist session
+            localStorage.setItem('ask_dukandar_session', JSON.stringify({
+                isLoggedIn: true,
+                phone: phone,
+                shopCode: user.shopCode
+            }));
+
+            closeDukandarAuthModals();
+            updateDukandarNavUI();
+            switchView('admin');
+            syncUiFromState(true);
+
+            if (window.attachShopDataListeners) {
+                window.attachShopDataListeners(user.shopCode);
+            }
+
+            playChimeSound('success');
+            showToast(`स्वागत है, ${user.ownerName}! आपकी दुकान (#${user.shopCode}) में लॉगिन सफल।`, "success");
+        };
+
+        window.dukandarLogout = function() {
+            window.appState.dukandarAuth.isLoggedIn = false;
+            window.appState.dukandarAuth.currentPhone = null;
+            localStorage.removeItem('ask_dukandar_session');
+
+            if (subscriptionTimerInterval) clearInterval(subscriptionTimerInterval);
+
+            updateDukandarNavUI();
+            switchView('customer');
+
+            const gate = document.getElementById('customerGateModal');
+            if (gate) gate.classList.remove('hidden');
+
+            showToast("सफलतापूर्वक लॉगआउट हो गए!", "info");
+        };
+
+        window.updateDukandarNavUI = function() {
+            const btnText = document.getElementById('navDukandarBtnText');
+            const logoutBtn = document.getElementById('btnNavLogout');
+
+            if (window.appState.dukandarAuth.isLoggedIn) {
+                if (btnText) btnText.textContent = "दुकानदार डैशबोर्ड";
+                if (logoutBtn) {
+                    logoutBtn.classList.remove('hidden');
+                    logoutBtn.classList.add('inline-flex');
+                }
+            } else {
+                if (btnText) btnText.textContent = "दुकानदार साइन इन";
+                if (logoutBtn) {
+                    logoutBtn.classList.add('hidden');
+                    logoutBtn.classList.remove('inline-flex');
+                }
+            }
+        };
+
+        window.sendDemoOtp = function() {
+            const ownerName = (document.getElementById('regOwnerName').value || '').trim();
+            const shopName = (document.getElementById('regShopName').value || '').trim();
+            const address = (document.getElementById('regAddress').value || '').trim();
+            const phone = (document.getElementById('regPhone').value || '').trim();
+
+            if (!ownerName || !shopName || !address || phone.length !== 10) {
+                showToast("कृपया सभी विवरण व 10 अंकों का मोबाइल नंबर भरें!", "error");
+                return;
+            }
+
+            const accounts = getDukandarAccounts();
+            if (accounts[phone]) {
+                showToast("यह मोबाइल नंबर पहले से पंजीकृत है! कृपया लॉगिन करें।", "error");
+                return;
+            }
+
+            generatedDemoOtp = String(Math.floor(1000 + Math.random() * 9000));
+            pendingSignupData = { ownerName, shopName, address, phone };
+
+            const otpBadge = document.getElementById('demoOtpDisplayBadge');
+            if (otpBadge) otpBadge.textContent = generatedDemoOtp;
+
+            const otpInput = document.getElementById('regEnteredOtp');
+            if (otpInput) otpInput.value = generatedDemoOtp;
+
+            document.getElementById('signupStep1').classList.add('hidden');
+            document.getElementById('signupStep2').classList.remove('hidden');
+
+            playChimeSound('success');
+            showToast(`सत्यापन OTP: ${generatedDemoOtp}`, "info");
+        };
+
+        window.backToSignupStep1 = function() {
+            document.getElementById('signupStep2').classList.add('hidden');
+            document.getElementById('signupStep1').classList.remove('hidden');
+        };
+
+        window.verifyOtpAndRegisterDukandar = function() {
+            const enteredOtp = (document.getElementById('regEnteredOtp').value || '').trim();
+            const newPassword = (document.getElementById('regNewPassword').value || '').trim();
+            const confirmPassword = (document.getElementById('regConfirmPassword').value || '').trim();
+
+            if (enteredOtp !== generatedDemoOtp) {
+                showToast("अमान्य OTP कोड! कृपया सही OTP दर्ज करें।", "error");
+                return;
+            }
+
+            if (!newPassword || newPassword.length < 3) {
+                showToast("पासवर्ड कम से कम 3 अक्षरों का होना चाहिए!", "error");
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showToast("दोनों पासवर्ड मेल नहीं खाते!", "error");
+                return;
+            }
+
+            const trialDays = window.appState.superAdmin.trialDays || 3;
+            const newShopCode = generateUniqueShopCode();
+            const now = Date.now();
+
+            const accounts = getDukandarAccounts();
+            accounts[pendingSignupData.phone] = {
+                ownerName: pendingSignupData.ownerName,
+                shopName: pendingSignupData.shopName,
+                address: pendingSignupData.address,
+                phone: pendingSignupData.phone,
+                password: newPassword,
+                shopCode: newShopCode,
+                createdAt: new Date().toISOString(),
+                isLocked: false,
+                rates: { ...window.appState.rates },
+                cashfree: { ...window.appState.cashfree },
+                printers: { ...window.appState.printers },
+                subscription: {
+                    planType: "trial",
+                    startedAt: now,
+                    expiresAt: now + (trialDays * 24 * 60 * 60 * 1000)
+                }
+            };
+
+            saveDukandarAccounts(accounts);
+
+            // Auto-login newly registered shopkeeper
+            window.appState.dukandarAuth.isLoggedIn = true;
+            window.appState.dukandarAuth.currentPhone = pendingSignupData.phone;
+            window.appState.dukandarAuth.myShopCode = newShopCode;
+            window.appState.activeShopCode = newShopCode;
+
+            window.appState.shop.name = pendingSignupData.shopName;
+            window.appState.shop.owner = pendingSignupData.ownerName;
+            window.appState.shop.phone = pendingSignupData.phone;
+            window.appState.shop.address = pendingSignupData.address;
+            window.appState.shop.shopCode = newShopCode;
+
+            localStorage.setItem('ask_dukandar_session', JSON.stringify({
+                isLoggedIn: true,
+                phone: pendingSignupData.phone,
+                shopCode: newShopCode
+            }));
+
+            closeDukandarAuthModals();
+            updateDukandarNavUI();
+            switchView('admin');
+            syncUiFromState(true);
+
+            if (window.saveSettingsToCloud) window.saveSettingsToCloud();
+            if (window.attachShopDataListeners) window.attachShopDataListeners(newShopCode);
+
+            playChimeSound('success');
+            showToast(`पंजीकरण सफल! आपकी दुकान का कोड: #${newShopCode}`, "success");
+            openShopQrModal();
+        };
+
+        // ==============================================
+        // AUDIO & SOUND CHIME FEEDBACK
+        // ==============================================
+        function playChimeSound(type = 'success') {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'success') {
+                    // Pleasant two-tone chime
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.45);
+                } else {
+                    // Warning tone
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                }
+            } catch (e) {
+                // AudioContext not allowed or not supported; gracefully ignore
+            }
+        }
+
+        // ==============================================
+        // SUPER ADMIN PLATFORM CONFIG & LOCAL PERSISTENCE
+        // ==============================================
+        function getSuperAdminConfig() {
+            try {
+                const stored = localStorage.getItem('ask_super_admin_config');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') {
+                        return { 
+                            ...window.appState.superAdmin, 
+                            ...parsed,
+                            cashfree: { ...window.appState.superAdmin.cashfree, ...(parsed.cashfree || {}) }
+                        };
+                    }
+                }
+            } catch (e) {}
+            return window.appState.superAdmin;
+        }
+
+        function saveSuperAdminConfig(cfg) {
+            try {
+                localStorage.setItem('ask_super_admin_config', JSON.stringify(cfg));
+                window.appState.superAdmin = cfg;
+            } catch (e) {}
+        }
+
+        function getDukandarAccounts() {
+            try {
+                const stored = localStorage.getItem('ask_registered_dukandars');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') return parsed;
+                }
+            } catch (e) {}
+            
+            // Seed with initial master shop (with 365 days initial subscription)
+            const seed = {
+                "9117327903": {
+                    ownerName: "Ansal Kumar",
+                    shopName: "आदर्श सेवा केंद्र",
+                    address: "समस्तीपुर, बिहार",
+                    phone: "9117327903",
+                    password: "123",
+                    shopCode: "1042",
+                    createdAt: "2024-01-01",
+                    isLocked: false,
+                    subscription: {
+                        planType: "active", // "trial", "active", "expired"
+                        startedAt: Date.now(),
+                        expiresAt: Date.now() + (365 * 24 * 60 * 60 * 1000) // 1 year active for master shop
+                    }
+                }
+            };
+            saveDukandarAccounts(seed);
+            return seed;
+        }
+
+        function saveDukandarAccounts(accounts) {
+            try {
+                localStorage.setItem('ask_registered_dukandars', JSON.stringify(accounts));
+            } catch (e) {}
+        }
+
+        function generateUniqueShopCode() {
+            const accounts = getDukandarAccounts();
+            const existing = new Set();
+            for (let ph in accounts) {
+                if (accounts[ph].shopCode) existing.add(String(accounts[ph].shopCode));
+            }
+            existing.add("1042");
+
+            let code;
+            do {
+                code = String(Math.floor(1000 + Math.random() * 9000));
+            } while (existing.has(code));
+            return code;
+        }
+
+        // ==============================================
+        // SUBSCRIPTION & COUNTDOWN ENGINE
+        // ==============================================
+        function startSubscriptionCountdownEngine() {
+            if (subscriptionTimerInterval) clearInterval(subscriptionTimerInterval);
+            updateSubscriptionCountdownUI();
+            subscriptionTimerInterval = setInterval(updateSubscriptionCountdownUI, 1000);
+        }
+
+        function updateSubscriptionCountdownUI() {
+            if (!window.appState.dukandarAuth.isLoggedIn) return;
+
+            const phone = window.appState.dukandarAuth.currentPhone;
+            const accounts = getDukandarAccounts();
+            const user = accounts[phone];
+            if (!user) return;
+
+            const sub = user.subscription || {
+                planType: "trial",
+                startedAt: Date.now(),
+                expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000)
+            };
+
+            const now = Date.now();
+            const diffMs = sub.expiresAt - now;
+
+            const countdownEl = document.getElementById('subRemainingCountdown');
+            const planBadgeEl = document.getElementById('subPlanBadge');
+            const statusBanner = document.getElementById('subscriptionStatusBanner');
+
+            // If manually locked by Super Admin OR time expired
+            if (user.isLocked || diffMs <= 0) {
+                if (countdownEl) countdownEl.textContent = "समय समाप्त (00 दिन 00:00:00)";
+                if (planBadgeEl) {
+                    planBadgeEl.textContent = "अवधि समाप्त (Expired)";
+                    planBadgeEl.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-300";
+                }
+                if (statusBanner) {
+                    statusBanner.className = "p-4 sm:p-5 rounded-3xl border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm bg-gradient-to-r from-rose-500/15 via-rose-500/5 to-transparent border-rose-300";
+                }
+
+                // Show modal lock if admin view is open
+                if (window.appState.currentView === 'admin') {
+                    openDukandarExpiredModal(user);
+                }
+                return;
+            }
+
+            // Still active - calculate Days, Hours, Minutes, Seconds
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+            const pad = (n) => String(n).padStart(2, '0');
+            const formatted = `${days} दिन ${pad(hours)} घंटे ${pad(minutes)} मिनट ${pad(seconds)} सेकंड`;
+
+            if (countdownEl) countdownEl.textContent = formatted;
+            if (planBadgeEl) {
+                if (sub.planType === 'trial') {
+                    planBadgeEl.textContent = `मुफ़्त ट्रायल (${window.appState.superAdmin.trialDays} दिन)`;
+                    planBadgeEl.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300";
+                } else {
+                    planBadgeEl.textContent = "प्रीमियम एक्टिव प्लान";
+                    planBadgeEl.className = "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300";
+                }
+            }
+
+            const expiredModal = document.getElementById('dukandarExpiredModal');
+            if (expiredModal) expiredModal.classList.add('hidden');
+        }
+
+        function openDukandarExpiredModal(user) {
+            const modal = document.getElementById('dukandarExpiredModal');
+            const feeDisplay = document.getElementById('expiredModalFeeDisplay');
+            const payBtnText = document.getElementById('expiredModalPayBtnText');
+
+            const superCfg = window.appState.superAdmin;
+            if (feeDisplay) feeDisplay.textContent = `₹${superCfg.monthlyFee} / महीना`;
+            if (payBtnText) payBtnText.textContent = superCfg.monthlyFee;
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function openShopkeeperRenewModal() {
+            const phone = window.appState.dukandarAuth.currentPhone;
+            const accounts = getDukandarAccounts();
+            openDukandarExpiredModal(accounts[phone]);
+        }
+
+        // ==============================================
+        // DUKANDAR CASHFREE SUBSCRIPTION PAYMENT ENGINE
+        // ==============================================
+        async function paySubscriptionViaCashfree() {
+            const superCfg = window.appState.superAdmin;
+            const cfConfig = superCfg.cashfree || {};
+            const phone = window.appState.dukandarAuth.currentPhone || "9117327903";
+            const accounts = getDukandarAccounts();
+            const user = accounts[phone] || {};
+            const shopCode = window.appState.dukandarAuth.myShopCode || "1042";
+
+            const btn = document.getElementById('btnRenewSubscriptionGateway');
+            const originalBtnHtml = btn.innerHTML;
+
+            if (!cfConfig.appId || !cfConfig.secretKey) {
+                showPaymentFailureModal("सुपर एडमिन ने अभी तक कैशफ्री पेमेंट गेटवे (App ID / Secret Key) सेट नहीं किया है। कृपया प्लेटफ़ॉर्म व्यवस्थापक से संपर्क करें।");
+                return;
+            }
+
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>पेमेंट गेटवे खुल रहा है...</span>`;
+            btn.disabled = true;
+
+            const orderId = `SUB_${shopCode}_` + Date.now().toString().slice(-6);
+
+            try {
+                const baseUrl = (cfConfig.environment === 'production')
+                    ? "https://api.cashfree.com/pg/orders"
+                    : "https://sandbox.cashfree.com/pg/orders";
+
+                const response = await fetch(baseUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-version": "2023-08-01",
+                        "x-client-id": cfConfig.appId,
+                        "x-client-secret": cfConfig.secretKey
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        order_amount: superCfg.monthlyFee || 299,
+                        order_currency: "INR",
+                        customer_details: {
+                            customer_id: "SHOP_" + shopCode,
+                            customer_name: user.ownerName || "Shopkeeper",
+                            customer_phone: phone
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.payment_session_id && window.Cashfree) {
+                        const cashfreeInstance = window.Cashfree({ mode: cfConfig.environment || "sandbox" });
+
+                        cashfreeInstance.checkout({
+                            paymentSessionId: data.payment_session_id,
+                            redirectTarget: "_modal"
+                        }).then((result) => {
+                            btn.innerHTML = originalBtnHtml;
+                            btn.disabled = false;
+
+                            if (result && result.paymentDetails) {
+                                const status = result.paymentDetails.paymentStatus || result.paymentDetails.txStatus || "SUCCESS";
+                                if (status === "SUCCESS" || status === "PAID") {
+                                    // Subscription payment verified! Automatically unlock and add 30 days
+                                    superAdminUnlockShop(phone);
+                                    playChimeSound('success');
+                                    const modal = document.getElementById('dukandarExpiredModal');
+                                    if (modal) modal.classList.add('hidden');
+                                    showToast(`सब्सक्रिप्शन पेमेंट सफल! दुकान (#${shopCode}) 30 दिनों के लिए अनलॉक हो गई।`, "success");
+                                } else {
+                                    showPaymentFailureModal(`सब्सक्रिप्शन भुगतान स्थिति: ${status}। खाते से पैसे नहीं कटे हैं।`);
+                                }
+                            } else if (result && result.error) {
+                                showPaymentFailureModal(`भुगतान रद्द या विफल: ${result.error.message || result.error.code}`);
+                            } else {
+                                showPaymentFailureModal("भुगतान विंडो बंद कर दी गई। सब्सक्रिप्शन रिन्यू नहीं हुआ।");
+                            }
+                        }).catch((checkoutErr) => {
+                            btn.innerHTML = originalBtnHtml;
+                            btn.disabled = false;
+                            showPaymentFailureModal(`चेकआउट एरर: ${checkoutErr.message || 'भुगतान प्रक्रिया रद्द हो गई।'}`);
+                        });
+                        return;
+                    } else {
+                        throw new Error(data.message || "पेमेंट सेशन बनाने में विफल");
+                    }
+                } else {
+                    const errData = await response.json();
+                    throw new Error(errData.message || `HTTP ${response.status} एरर`);
+                }
+            } catch (err) {
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+                showPaymentFailureModal(`एडमिन पेमेंट गेटवे एरर: ${err.message || 'API कुंजियां अमान्य हैं।'}`);
+            }
+        }
+
+        function handleSaveSuperAdminCashfree(e) {
+            e.preventDefault();
+            const env = document.getElementById('superCfEnvironment').value;
+            const appId = document.getElementById('superCfAppId').value.trim();
+            const secret = document.getElementById('superCfSecretKey').value.trim();
+
+            const updatedCfg = {
+                ...window.appState.superAdmin,
+                cashfree: {
+                    environment: env,
+                    appId: appId,
+                    secretKey: secret,
+                    apiVersion: "2023-08-01"
+                }
+            };
+            saveSuperAdminConfig(updatedCfg);
+            showToast("सुपर एडमिन Cashfree पेमेंट गेटवे सेटिंग्स सुरक्षित हो गईं!", "success");
+        }
+
+        function toggleSuperAdminSecretVisibility() {
+            const inp = document.getElementById('superCfSecretKey');
+            const icon = document.getElementById('superSecretEyeIcon');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                inp.type = 'password';
+                icon.className = 'fa-solid fa-eye text-xs';
+            }
+        }
+        function triggerDocumentPrint(order) {
+            playChimeSound('success');
+            const isColor = order.printType && order.printType.includes('color');
+            const grayscaleCss = isColor ? '' : 'filter: grayscale(100%) contrast(115%); -webkit-filter: grayscale(100%) contrast(115%);';
+
+            let sheetsHtml = '';
+            for (let c = 1; c <= (order.copies || 1); c++) {
+                if (order.pdfPages && order.pdfPages.length > 0) {
+                    order.pdfPages.forEach((pageImg, pIdx) => {
+                        sheetsHtml += `
+                            <div class="print-sheet">
+                                <div class="print-meta">
+                                    <span>${escapeHtml(window.appState.shop.name)} • Order: #${order.id} (कॉपी ${c}/${order.copies})</span>
+                                    <span>पृष्ठ ${pIdx + 1}/${order.pdfPages.length} • ${order.printTypeLabel}</span>
+                                </div>
+                                <div class="img-wrapper"><img src="${pageImg}" style="${grayscaleCss}" /></div>
+                            </div>
+                        `;
+                    });
+                } else if (order.fileData && order.fileType && order.fileType.startsWith('image/')) {
+                    sheetsHtml += `
+                        <div class="print-sheet">
+                            <div class="print-meta">
+                                <span>${escapeHtml(window.appState.shop.name)} • Order: #${order.id} (कॉपी ${c}/${order.copies})</span>
+                                <span>फ़ाइल: ${escapeHtml(order.fileName)} • ${order.printTypeLabel}</span>
+                            </div>
+                            <div class="img-wrapper"><img src="${order.fileData}" style="${grayscaleCss}" /></div>
+                        </div>
+                    `;
+                } else {
+                    sheetsHtml += `
+                        <div class="print-sheet">
+                            <div class="print-meta">
+                                <span>${escapeHtml(window.appState.shop.name)} • Order: #${order.id} (कॉपी ${c}/${order.copies})</span>
+                                <span>${order.printTypeLabel}</span>
+                            </div>
+                            <div style="border: 2px dashed #334155; border-radius: 12px; padding: 40px 20px; text-align: center; margin-top: 30px;">
+                                <div style="font-size: 50px; margin-bottom: 12px;">📄</div>
+                                <h2 style="font-size: 24px; color: #0f172a; margin: 0 0 10px 0;">${escapeHtml(order.fileName)}</h2>
+                                <p style="font-size: 15px; color: #334155;">प्रिंट प्रकार: <strong>${order.printTypeLabel}</strong> • पृष्ठ: <strong>${order.pages}</strong></p>
+                                ${order.notes ? `<p style="font-size: 13px; color: #b45309; margin-top: 8px;">नोट: ${escapeHtml(order.notes)}</p>` : ''}
+                                <div style="margin-top: 25px; font-size: 14px; color: #16a34a; font-weight: bold;">✓ भुगतान सफल (Paid)</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            const completePrintDoc = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>Print Document #${order.id}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 6mm; }
+                        * { box-sizing: border-box; }
+                        body { margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
+                        .print-sheet { page-break-after: always; display: flex; flex-direction: column; min-height: 98vh; width: 100%; padding: 2mm; }
+                        .print-sheet:last-child { page-break-after: auto; }
+                        .print-meta { font-size: 10px; color: #64748b; display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
+                        .img-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; }
+                        .img-wrapper img { max-width: 99%; max-height: 92vh; object-fit: contain; display: block; margin: 0 auto; }
+                    </style>
+                </head>
+                <body>${sheetsHtml}</body>
+                </html>
+            `;
+
+            // Zero-Click Automated Spooling through hidden execution iframe
+            const iframe = document.getElementById('printExecutionIframe');
+            if (iframe) {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                doc.open();
+                doc.write(completePrintDoc);
+                doc.close();
+
+                // Wait slightly for document render then execute automatic print
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    try {
+                        iframe.contentWindow.print();
+                    } catch (e) {
+                        console.warn("Auto-print trigger:", e);
+                    }
+                }, 400);
+            }
+        }
+
+        function toggleShopStatus() {
+            window.appState.shop.isOpen = !window.appState.shop.isOpen;
+            const btn = document.getElementById('statusToggleBtn');
+            const txt = document.getElementById('shopStatusText');
+
+            if (window.appState.shop.isOpen) {
+                txt.textContent = "दुकान: खुली है (Open)";
+                btn.className = "px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition border bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-500 flex items-center gap-2";
+                showToast("दुकान ओपन कर दी गई है", "success");
+            } else {
+                txt.textContent = "दुकान: बंद है (Closed)";
+                btn.className = "px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide uppercase transition border bg-rose-600 text-white hover:bg-rose-700 border-rose-500 flex items-center gap-2";
+                showToast("दुकान बंद कर दी गई है", "info");
+            }
+
+            if (window.saveSettingsToCloud) window.saveSettingsToCloud();
+        }
+
+        function renderOrdersTable() {
+            const tbody = document.getElementById('ordersTableBody');
+            const placeholder = document.getElementById('noOrdersPlaceholder');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            if (!window.appState.orders || window.appState.orders.length === 0) {
+                if (placeholder) placeholder.classList.remove('hidden');
+                return;
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+
+            window.appState.orders.forEach((order, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+
+                let statusBadge = "";
+                if (order.status === 'Completed') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check text-[10px]"></i> पूरा हुआ</span>`;
+                } else if (order.status === 'Printing') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-spinner fa-spin text-[10px]"></i> प्रिंट हो रहा</span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock text-[10px]"></i> कतार में</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 font-mono font-bold text-xs text-slate-800">
+                        ${order.id}
+                        <span class="block font-sans font-normal text-[10px] text-slate-400">${order.date || 'Just now'}</span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-bold text-xs text-slate-800">${escapeHtml(order.customerName || 'Customer')}</div>
+                        <div class="text-[11px] font-mono text-slate-500">${order.customerPhone || '-'}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="flex items-center gap-2">
+                            ${order.fileData && order.fileType && order.fileType.startsWith('image/') ? 
+                                `<img src="${order.fileData}" class="w-8 h-8 rounded-lg object-cover border border-slate-300">` : 
+                                `<div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-xs"><i class="fa-regular fa-file-pdf"></i></div>`
+                            }
+                            <div class="font-medium text-slate-800 truncate max-w-[130px]" title="${escapeHtml(order.fileName)}">
+                                ${escapeHtml(order.fileName)}
+                                ${order.notes ? `<span class="block text-[10px] text-amber-600 font-semibold truncate">${escapeHtml(order.notes)}</span>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="font-bold text-xs text-slate-800">${order.printTypeLabel}</div>
+                        <div class="text-[11px] text-slate-500">${order.pages} पृष्ठ × <strong class="text-brand-700">${order.copies} कॉपी</strong></div>
+                    </td>
+                    <td class="py-3.5 px-4 font-black text-slate-900 text-sm">
+                        ₹${order.totalAmount.toFixed(2)}
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            <i class="fa-solid fa-shield-halved text-[10px]"></i> ${order.cfTxnId || 'Paid'}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4">${statusBadge}</td>
+                    <td class="py-3.5 px-4 text-right">
+                        <div class="inline-flex items-center gap-1.5">
+                            <button onclick="reprintOrder(${idx})" title="प्रिंट निकालें"
+                                class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition">
+                                <i class="fa-solid fa-print"></i>
+                                <span>प्रिंट</span>
+                            </button>
+                            <button onclick="advanceOrderStatus(${idx})" title="स्टेटस बदलें"
+                                class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+                                <i class="fa-solid fa-forward-step"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function reprintOrder(idx) {
+            const order = window.appState.orders[idx];
+            if (order) {
+                triggerDocumentPrint(order);
+                showToast(`प्रिंटर पर भेजा गया: #${order.id}`, "info");
+            }
+        }
+
+        async function advanceOrderStatus(idx) {
+            const order = window.appState.orders[idx];
+            if (!order) return;
+
+            let nextStatus = "Completed";
+            if (order.status === 'Pending') nextStatus = 'Printing';
+            else if (order.status === 'Printing') nextStatus = 'Completed';
+
+            if (order._docId && window.updateOrderStatusInCloud) {
+                await window.updateOrderStatusInCloud(order._docId, nextStatus);
+            }
+            order.status = nextStatus;
+            renderOrdersTable();
+            showToast(`ऑर्डर #${order.id} स्टेटस: ${nextStatus}`, 'success');
+        }
+
+        function clearCompletedOrders() {
+            window.appState.orders = window.appState.orders.filter(o => o.status !== 'Completed');
+            renderOrdersTable();
+            updateStatsUI();
+            showToast("पूरे हुए ऑर्डर्स साफ किए गए", "info");
+        }
+
+        function updateStatsUI() {
+            const totalEl = document.getElementById('adminTotalOrdersCount');
+            const revEl = document.getElementById('adminTotalRevenue');
+            if (totalEl) totalEl.textContent = window.appState.orders.length;
+            if (revEl) {
+                const totalRev = window.appState.orders.reduce((sum, ord) => sum + (ord.totalAmount || 0), 0);
+                revEl.textContent = `₹${totalRev.toFixed(2)}`;
+            }
+        }
+
+        // ==============================================
+        // SUPER ADMIN CONTROLS & MANAGEMENT
+        // ==============================================
+        function openSuperAdminPinModal() {
+            const modal = document.getElementById('superAdminPinModal');
+            const pinInp = document.getElementById('inputSuperAdminPin');
+            const errBox = document.getElementById('superPinError');
+            if (errBox) errBox.classList.add('hidden');
+            if (pinInp) pinInp.value = "";
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeSuperAdminPinModal() {
+            const modal = document.getElementById('superAdminPinModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function handleSuperAdminPinSubmit(e) {
+            e.preventDefault();
+            const entered = (document.getElementById('inputSuperAdminPin').value || '').trim();
+            const currentPin = window.appState.superAdmin.pin || "9999";
+            const errBox = document.getElementById('superPinError');
+
+            if (entered !== currentPin) {
+                if (errBox) errBox.classList.remove('hidden');
+                return;
+            }
+
+            closeSuperAdminPinModal();
+            openSuperAdminView();
+            showToast("मास्टर सुपर एडमिन पैनल अधिकृत!", "success");
+        }
+
+        function openSuperAdminView() {
+            window.appState.currentView = "superadmin";
+            document.getElementById('viewCustomer').classList.add('hidden');
+            document.getElementById('viewAdmin').classList.add('hidden');
+            document.getElementById('viewSuperAdmin').classList.remove('hidden');
+
+            // Populate settings inputs
+            const cfg = window.appState.superAdmin;
+            document.getElementById('superTrialDays').value = cfg.trialDays || 3;
+            document.getElementById('superMonthlyPrice').value = cfg.monthlyFee || 299;
+            document.getElementById('superAdminContactPhone').value = cfg.contactPhone || "9117327903";
+
+            // Populate Super Admin Cashfree Inputs
+            const cfCfg = cfg.cashfree || {};
+            document.getElementById('superCfEnvironment').value = cfCfg.environment || "sandbox";
+            document.getElementById('superCfAppId').value = cfCfg.appId || "";
+            document.getElementById('superCfSecretKey').value = cfCfg.secretKey || "";
+
+            document.getElementById('guideTrialDays').textContent = cfg.trialDays || 3;
+            document.getElementById('guideMonthlyFee').textContent = cfg.monthlyFee || 299;
+            document.getElementById('superStatCurrentFee').textContent = `₹${cfg.monthlyFee}/माह`;
+
+            renderSuperAdminShopkeepersTable();
+        }
+
+        function handleSaveSuperAdminPricing(e) {
+            e.preventDefault();
+            const trialDays = parseInt(document.getElementById('superTrialDays').value) || 3;
+            const monthlyFee = parseInt(document.getElementById('superMonthlyPrice').value) || 299;
+            const contactPhone = document.getElementById('superAdminContactPhone').value.trim();
+
+            const updatedCfg = {
+                ...window.appState.superAdmin,
+                trialDays,
+                monthlyFee,
+                contactPhone
+            };
+            saveSuperAdminConfig(updatedCfg);
+
+            document.getElementById('guideTrialDays').textContent = trialDays;
+            document.getElementById('guideMonthlyFee').textContent = monthlyFee;
+            document.getElementById('superStatCurrentFee').textContent = `₹${monthlyFee}/माह`;
+
+            showToast("सब्सक्रिप्शन सेटिंग्स सफलतापूर्वक अपडेट!", "success");
+        }
+
+        function handleSaveSuperAdminPin(e) {
+            e.preventDefault();
+            const newPin = (document.getElementById('superAdminNewPin').value || '').trim();
+            if (newPin.length < 4) {
+                showToast("PIN कम से कम 4 अंकों का होना चाहिए!", "error");
+                return;
+            }
+
+            const updatedCfg = {
+                ...window.appState.superAdmin,
+                pin: newPin
+            };
+            saveSuperAdminConfig(updatedCfg);
+            document.getElementById('superAdminNewPin').value = "";
+            showToast("सुपर एडमिन सुरक्षा PIN बदल दिया गया!", "success");
+        }
+
+        function renderSuperAdminShopkeepersTable() {
+            const tbody = document.getElementById('superAdminShopsTableBody');
+            const noShopsPlaceholder = document.getElementById('noSuperAdminShopsPlaceholder');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const accounts = getDukandarAccounts();
+            const phoneKeys = Object.keys(accounts);
+
+            document.getElementById('superStatTotalShops').textContent = phoneKeys.length;
+
+            let activeCount = 0;
+            let lockedCount = 0;
+
+            if (phoneKeys.length === 0) {
+                if (noShopsPlaceholder) noShopsPlaceholder.classList.remove('hidden');
+                return;
+            }
+            if (noShopsPlaceholder) noShopsPlaceholder.classList.add('hidden');
+
+            const now = Date.now();
+
+            phoneKeys.forEach((phone) => {
+                const shop = accounts[phone];
+                const sub = shop.subscription || { expiresAt: now - 1000 };
+                const isExpired = sub.expiresAt <= now;
+                const isLocked = shop.isLocked || isExpired;
+
+                if (!isLocked) activeCount++;
+                else lockedCount++;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+
+                let expiryDateStr = new Date(sub.expiresAt).toLocaleDateString('hi-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                let statusBadge = isLocked 
+                    ? `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-lock text-[10px] mr-1"></i> लॉक (Expired)</span>`
+                    : `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-circle-check text-[10px] mr-1"></i> चालू (Active)</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono font-black text-amber-600 text-sm">#${shop.shopCode || '-'}</td>
+                    <td class="py-3 px-4">
+                        <span class="font-bold text-slate-800 block text-xs sm:text-sm">${escapeHtml(shop.shopName)}</span>
+                        <span class="text-[11px] text-slate-400">संचालक: ${escapeHtml(shop.ownerName)}</span>
+                    </td>
+                    <td class="py-3 px-4 font-mono font-bold text-slate-700 text-xs">${shop.phone}</td>
+                    <td class="py-3 px-4">
+                        <span class="text-xs font-bold uppercase ${sub.planType === 'trial' ? 'text-amber-700' : 'text-purple-700'}">
+                            ${sub.planType === 'trial' ? 'फ़्री ट्रायल' : 'मासिक प्लान'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-xs ${isExpired ? 'text-rose-600 font-bold' : 'text-slate-600'}">
+                        ${expiryDateStr}
+                    </td>
+                    <td class="py-3 px-4">${statusBadge}</td>
+                    <td class="py-3 px-4 text-right">
+                        <div class="inline-flex items-center gap-1.5 flex-wrap justify-end">
+                            ${isLocked ? `
+                                <button onclick="superAdminUnlockShop('${phone}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition" title="फ्री में अनलॉक करें">+30 दिन अनलॉक</button>
+                            ` : `
+                                <button onclick="superAdminLockShop('${phone}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs transition" title="दुकान लॉक करें">लॉक करें</button>
+                            `}
+                            <button onclick="superAdminDeleteShop('${phone}')" class="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition" title="दुकान हटाएं">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('superStatActiveShops').textContent = activeCount;
+            document.getElementById('superStatLockedShops').textContent = lockedCount;
+        }
+
+        function superAdminUnlockShop(phone) {
+            const accounts = getDukandarAccounts();
+            if (!accounts[phone]) return;
+
+            const now = Date.now();
+            const curExpiry = accounts[phone].subscription?.expiresAt || now;
+            const newExpiry = Math.max(now, curExpiry) + (30 * 24 * 60 * 60 * 1000); // add 30 days
+
+            accounts[phone].isLocked = false;
+            accounts[phone].subscription = {
+                planType: "active",
+                startedAt: now,
+                expiresAt: newExpiry
+            };
+
+            saveDukandarAccounts(accounts);
+            renderSuperAdminShopkeepersTable();
+            showToast(`दुकान (#${accounts[phone].shopCode}) को 30 दिनों के लिए सफलतापूर्वक अनलॉक कर दिया गया!`, "success");
+        }
+
+        function superAdminLockShop(phone) {
+            const accounts = getDukandarAccounts();
+            if (!accounts[phone]) return;
+
+            accounts[phone].isLocked = true;
+            accounts[phone].subscription = {
+                ...accounts[phone].subscription,
+                expiresAt: Date.now() - 1000 // force expire
+            };
+
+            saveDukandarAccounts(accounts);
+            renderSuperAdminShopkeepersTable();
+            showToast(`दुकान (#${accounts[phone].shopCode}) को लॉक कर दिया गया।`, "info");
+        }
+
+        function superAdminDeleteShop(phone) {
+            if (phone === "9117327903") {
+                showToast("मास्टर डिफ़ॉल्ट दुकान को डिलीट नहीं किया जा सकता!", "error");
+                return;
+            }
+
+            const accounts = getDukandarAccounts();
+            if (!accounts[phone]) return;
+
+            const shopCode = accounts[phone].shopCode;
+            delete accounts[phone];
+            saveDukandarAccounts(accounts);
+            renderSuperAdminShopkeepersTable();
+            showToast(`दुकान (#${shopCode}) हटा दी गई।`, "success");
+        }
+
+        function switchView(viewName) {
+            if (viewName === 'admin' && (!window.appState.dukandarAuth || !window.appState.dukandarAuth.isLoggedIn)) {
+                openDukandarLoginModal();
+                return;
+            }
+
+            window.appState.currentView = viewName;
+            const customerView = document.getElementById('viewCustomer');
+            const adminView = document.getElementById('viewAdmin');
+            const superAdminView = document.getElementById('viewSuperAdmin');
+            const btnCustomer = document.getElementById('btnNavCustomer');
+            const btnAdmin = document.getElementById('btnNavAdmin');
+
+            if (viewName === 'customer') {
+                customerView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                superAdminView.classList.add('hidden');
+                btnCustomer.className = "px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs tracking-wide transition flex items-center gap-2 bg-brand-50 text-brand-700 border border-brand-200 shadow-sm";
+                btnAdmin.className = "px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs tracking-wide transition flex items-center gap-2 text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200";
+            } else if (viewName === 'admin') {
+                adminView.classList.remove('hidden');
+                customerView.classList.add('hidden');
+                superAdminView.classList.add('hidden');
+                btnAdmin.className = "px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs tracking-wide transition flex items-center gap-2 bg-slate-900 text-white shadow-sm";
+                btnCustomer.className = "px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-semibold text-xs tracking-wide transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100";
+                renderOrdersTable();
+                updateStatsUI();
+                startSubscriptionCountdownEngine();
+            }
+        }
+
+        function syncUiFromState(updateAdminInputs = false) {
+            const currentCode = window.appState.shop.shopCode || window.appState.activeShopCode || "1042";
+
+            const navShop = document.getElementById('navShopName');
+            const navShopCodeDisplay = document.getElementById('navShopCodeDisplay');
+            const bannerShopLabel = document.getElementById('bannerShopLabel');
+            const billShopBadge = document.getElementById('billShopBadge');
+            const adminWelcome = document.getElementById('adminWelcomeName');
+            const adminShopBadge = document.getElementById('adminShopBadgeName');
+            const adminShopCodeDisplay = document.getElementById('adminShopCodeDisplay');
+
+            if (navShop) navShop.textContent = window.appState.shop.name;
+            if (navShopCodeDisplay) navShopCodeDisplay.textContent = currentCode;
+            if (bannerShopLabel) bannerShopLabel.textContent = `${window.appState.shop.name} (दुकान #${currentCode})`;
+            if (billShopBadge) billShopBadge.textContent = `दुकान #${currentCode} रेट्स`;
+            if (adminWelcome) adminWelcome.textContent = window.appState.shop.owner;
+            if (adminShopBadge) adminShopBadge.textContent = `${window.appState.shop.name} (#${currentCode})`;
+            if (adminShopCodeDisplay) adminShopCodeDisplay.textContent = currentCode;
+
+            const activeBw = document.getElementById('adminActiveBwPrinter');
+            if (activeBw) activeBw.textContent = window.appState.printers.bwModel || "HP M1005";
+
+            if (updateAdminInputs) {
+                if (document.getElementById('rateBwSingle')) document.getElementById('rateBwSingle').value = window.appState.rates.bwSingle;
+                if (document.getElementById('rateBwDouble')) document.getElementById('rateBwDouble').value = window.appState.rates.bwDouble;
+                if (document.getElementById('rateColorNormal')) document.getElementById('rateColorNormal').value = window.appState.rates.colorNormal;
+                if (document.getElementById('rateColorPhoto')) document.getElementById('rateColorPhoto').value = window.appState.rates.colorPhoto;
+                if (document.getElementById('rateLamination')) document.getElementById('rateLamination').value = window.appState.rates.lamination;
+                if (document.getElementById('rateScanning')) document.getElementById('rateScanning').value = window.appState.rates.scanning;
+
+                if (document.getElementById('cfEnvironment')) document.getElementById('cfEnvironment').value = window.appState.cashfree.environment || "sandbox";
+                if (document.getElementById('cfAppId')) document.getElementById('cfAppId').value = window.appState.cashfree.appId || "";
+                if (document.getElementById('cfSecretKey')) document.getElementById('cfSecretKey').value = window.appState.cashfree.secretKey || "";
+            }
+
+            const trialDaysLabel = document.getElementById('signupTrialDaysLabel');
+            if (trialDaysLabel) trialDaysLabel.textContent = window.appState.superAdmin.trialDays || 3;
+
+            recalculateBillUI();
+        }
+
+        function showToast(message, type = "info") {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const icon = document.getElementById('toastIcon');
+            if (!toast || !msgEl || !icon) return;
+
+            msgEl.textContent = message;
+
+            if (type === 'success') {
+                icon.className = "fa-solid fa-circle-check text-emerald-500 text-base";
+            } else if (type === 'error') {
+                icon.className = "fa-solid fa-circle-exclamation text-rose-500 text-base";
+            } else {
+                icon.className = "fa-solid fa-circle-info text-blue-500 text-base";
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3200);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ==============================================
+        // INITIALIZATION
+        // ==============================================
+        window.addEventListener('load', () => {
+            // Load Super Admin Config
+            window.appState.superAdmin = getSuperAdminConfig();
+
+            // Check persistent login session for DUKANDAR only
+            let isDukandarSessionActive = false;
+            try {
+                const cachedAuth = localStorage.getItem('ask_dukandar_session');
+                if (cachedAuth) {
+                    const session = JSON.parse(cachedAuth);
+                    if (session && session.isLoggedIn && session.shopCode) {
+                        const accounts = getDukandarAccounts();
+                        const user = accounts[session.phone];
+                        if (user) {
+                            window.appState.dukandarAuth.isLoggedIn = true;
+                            window.appState.dukandarAuth.currentPhone = session.phone;
+                            window.appState.dukandarAuth.myShopCode = session.shopCode;
+                            window.appState.activeShopCode = session.shopCode;
+                            window.appState.shop.name = user.shopName || window.appState.shop.name;
+                            window.appState.shop.owner = user.ownerName || window.appState.shop.owner;
+                            window.appState.shop.phone = user.phone || session.phone;
+                            window.appState.shop.shopCode = session.shopCode;
+                            isDukandarSessionActive = true;
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            updateDukandarNavUI();
+
+            const gate = document.getElementById('customerGateModal');
+
+            if (isDukandarSessionActive) {
+                switchView('admin');
+                if (gate) gate.classList.add('hidden');
+                syncUiFromState(true);
+                startSubscriptionCountdownEngine();
+            } else {
+                window.appState.customerSession = {
+                    verified: false,
+                    customerName: "",
+                    enteredShopCode: ""
+                };
+                if (gate) {
+                    gate.classList.remove('hidden');
+                    const codeInp = document.getElementById('gateShopCode');
+                    const nameInp = document.getElementById('gateCustomerName');
+                    if (codeInp) codeInp.value = "";
+                    if (nameInp) nameInp.value = "";
+                }
+                switchView('customer');
+                syncUiFromState(false);
+            }
+        });
+    </script>
+</body>
+</html>
