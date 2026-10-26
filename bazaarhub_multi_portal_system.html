@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BazaarHub - Admin, Dukandar & Customer Portals</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-down { animation: slideDown 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Brand Logo -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="window.switchPortal('customer')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                        <i class="fa-solid fa-store text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">BazaarHub</span>
+                        <span class="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full ml-1 border border-indigo-200">Cloud Sync</span>
+                    </div>
+                </div>
+
+                <!-- Portal Switcher Pills -->
+                <nav class="flex items-center space-x-1 sm:space-x-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                    <button onclick="window.switchPortal('customer')" id="tab-customer" class="portal-tab flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white text-indigo-600 shadow-sm">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        <span>Customer</span>
+                    </button>
+                    <button onclick="window.switchPortal('dukandar')" id="tab-dukandar" class="portal-tab flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-shop"></i>
+                        <span>Dukandar</span>
+                    </button>
+                    <button onclick="window.switchPortal('admin')" id="tab-admin" class="portal-tab flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>Admin</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Cloud Connection Banner -->
+    <div id="connection-banner" class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-xs text-amber-800 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <span>Connecting to real-time cloud database...</span>
+    </div>
+
+    <!-- Main Dynamic Workspace -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+        <!-- ==========================================
+             1. CUSTOMER PORTAL (DIRECT ENTRY)
+             ========================================== -->
+        <section id="portal-customer" class="portal-section space-y-8">
+            <!-- Hero Banner -->
+            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white shadow-xl p-6 sm:p-10">
+                <div class="relative z-10 max-w-2xl space-y-4">
+                    <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium border border-white/20">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        Direct Customer Access — No Login Required
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                        Explore Local Dukan &amp; Products Instantly
+                    </h1>
+                    <p class="text-indigo-100 text-sm sm:text-base leading-relaxed">
+                        Browse verified local shops (Dukandars) and order items directly. New shops and products registered in the Dukandar portal appear here in real-time!
+                    </p>
+                    <!-- Search & Filter Bar -->
+                    <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-grow">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="customer-search" oninput="window.renderCustomerView()" placeholder="Search by Dukan name, owner, or product..." class="w-full pl-11 pr-4 py-3 rounded-xl bg-white text-slate-800 placeholder-slate-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner">
+                        </div>
+                        <select id="customer-shop-filter" onchange="window.renderCustomerView()" class="px-4 py-3 rounded-xl bg-white text-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                            <option value="all">All Registered Dukans</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Decorative background icon -->
+                <i class="fa-solid fa-basket-shopping absolute -right-6 -bottom-8 text-[180px] text-white/5 pointer-events-none"></i>
+            </div>
+
+            <!-- Registered Dukans Horizontal Strip -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-store text-indigo-600"></i> Verified Dukandars
+                        </h2>
+                        <p class="text-xs text-slate-500">Click on any Dukan to filter its products</p>
+                    </div>
+                    <span id="customer-dukan-count" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">0 Shops</span>
+                </div>
+
+                <div id="customer-shops-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Available Products Section -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-purple-600"></i> Available Products in Market
+                        </h2>
+                        <p class="text-xs text-slate-500">Live inventory uploaded by registered Dukandars</p>
+                    </div>
+                    <button onclick="window.resetCustomerFilter()" id="reset-filter-btn" class="hidden text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg">
+                        <i class="fa-solid fa-rotate-left"></i> Show All Shops
+                    </button>
+                </div>
+
+                <div id="customer-products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ==========================================
+             2. DUKANDAR (SHOPKEEPER) PORTAL
+             ========================================== -->
+        <section id="portal-dukandar" class="portal-section hidden">
+            
+            <!-- Auth Container (Login & Signup with Virtual OTP) -->
+            <div id="dukandar-auth-view" class="max-w-md mx-auto my-4">
+                <div class="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
+                    <!-- Auth Header Switcher -->
+                    <div class="grid grid-cols-2 bg-slate-100 p-1.5 border-b border-slate-200">
+                        <button onclick="window.switchDukandarAuthMode('login')" id="btn-mode-login" class="py-2.5 rounded-2xl text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
+                            <i class="fa-solid fa-right-to-bracket mr-1"></i> Dukandar Login
+                        </button>
+                        <button onclick="window.switchDukandarAuthMode('signup')" id="btn-mode-signup" class="py-2.5 rounded-2xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-user-plus mr-1"></i> New Signup
+                        </button>
+                    </div>
+
+                    <div class="p-6 sm:p-8">
+                        <!-- DUKANDAR LOGIN FORM (Mobile Number + Password) -->
+                        <form id="form-dukandar-login" onsubmit="window.handleDukandarLogin(event)" class="space-y-5">
+                            <div class="text-center space-y-1">
+                                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2 text-xl">
+                                    <i class="fa-solid fa-shop"></i>
+                                </div>
+                                <h2 class="text-xl font-extrabold text-slate-900">Welcome Back, Dukandar!</h2>
+                                <p class="text-xs text-slate-500">Login using your registered Mobile Number &amp; Password</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Mobile Number</label>
+                                <div class="relative">
+                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">+91</span>
+                                    <input type="tel" id="login-dukandar-mobile" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile number" class="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="password" id="login-dukandar-password" required placeholder="Enter your password" class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <button type="button" onclick="window.togglePasswordVisibility('login-dukandar-password')" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <i class="fa-regular fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold text-sm shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                                <span>Login to Dukan</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+
+                            <p class="text-center text-xs text-slate-500 pt-2">
+                                Don't have a Dukan account yet? 
+                                <button type="button" onclick="window.switchDukandarAuthMode('signup')" class="text-indigo-600 font-bold hover:underline">Signup with OTP</button>
+                            </p>
+                        </form>
+
+                        <!-- DUKANDAR SIGNUP MULTI-STEP FLOW -->
+                        <div id="form-dukandar-signup" class="hidden space-y-5">
+                            <!-- Step Progress Bar -->
+                            <div class="flex items-center justify-between text-xs font-bold text-slate-400 mb-4 px-2">
+                                <div id="step-ind-1" class="flex items-center gap-1.5 text-indigo-600">
+                                    <span class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">1</span>
+                                    <span>Mobile</span>
+                                </div>
+                                <div class="h-0.5 flex-grow mx-2 bg-slate-200"></div>
+                                <div id="step-ind-2" class="flex items-center gap-1.5">
+                                    <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs">2</span>
+                                    <span>4-Digit OTP</span>
+                                </div>
+                                <div class="h-0.5 flex-grow mx-2 bg-slate-200"></div>
+                                <div id="step-ind-3" class="flex items-center gap-1.5">
+                                    <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs">3</span>
+                                    <span>Dukan Details</span>
+                                </div>
+                            </div>
+
+                            <!-- STEP 1: Enter Mobile Number to get Virtual OTP -->
+                            <form id="signup-step-1" onsubmit="window.sendVirtualOtp(event)" class="space-y-4">
+                                <div class="text-center space-y-1">
+                                    <h3 class="text-lg font-extrabold text-slate-900">Step 1: Verify Mobile Number</h3>
+                                    <p class="text-xs text-slate-500">Enter your 10-digit mobile number to receive a 4-digit Virtual OTP</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Mobile Number</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">+91</span>
+                                        <input type="tel" id="signup-mobile-input" required pattern="[0-9]{10}" maxlength="10" placeholder="Enter 10-digit mobile number" class="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    <span>Generate 4-Digit Virtual OTP</span>
+                                </button>
+                            </form>
+
+                            <!-- STEP 2: Enter 4-Digit Virtual OTP -->
+                            <form id="signup-step-2" onsubmit="window.verifyVirtualOtp(event)" class="hidden space-y-4">
+                                <div class="text-center space-y-1">
+                                    <h3 class="text-lg font-extrabold text-slate-900">Step 2: Enter 4-Digit Virtual OTP</h3>
+                                    <p class="text-xs text-slate-500">Sent to +91 <span id="display-otp-mobile" class="font-bold text-slate-800"></span></p>
+                                </div>
+
+                                <!-- Virtual SMS Banner Display -->
+                                <div class="bg-emerald-50 border-2 border-dashed border-emerald-400 rounded-2xl p-4 text-center space-y-1 animate-slide-down">
+                                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-comment-sms"></i> Virtual SMS OTP Received
+                                    </div>
+                                    <div id="virtual-otp-banner-code" class="text-3xl font-black tracking-[0.35em] text-emerald-900 font-mono py-1">----</div>
+                                    <p class="text-[11px] text-emerald-700">Enter the 4-digit code shown above to verify</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5 text-center">Enter 4-Digit OTP</label>
+                                    <input type="text" id="signup-otp-input" required pattern="[0-9]{4}" maxlength="4" placeholder="• • • •" class="w-full text-center tracking-[0.5em] text-2xl font-extrabold py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="window.resetSignupToStep1()" class="w-1/3 py-3 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all">
+                                        Change No.
+                                    </button>
+                                    <button type="submit" class="w-2/3 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        <span>Verify OTP</span>
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- STEP 3: Complete Dukan Registration Form -->
+                            <form id="signup-step-3" onsubmit="window.completeDukandarSignup(event)" class="hidden space-y-4">
+                                <div class="text-center space-y-1">
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full">
+                                        <i class="fa-solid fa-check-circle"></i> OTP Verified
+                                    </span>
+                                    <h3 class="text-lg font-extrabold text-slate-900">Step 3: Fill Dukan Details</h3>
+                                    <p class="text-xs text-slate-500">Complete your profile to create your Dukandar account</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Full Name (Dukandar Name)</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input type="text" id="reg-name" required placeholder="e.g.amesh Sharma" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Dukan Name (Shop Name)</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-store absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input type="text" id="reg-dukan-name" required placeholder="e.g. Sharma Kirana & General Store" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Gmail Address</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input type="email" id="reg-gmail" required placeholder="example@gmail.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Verified Mobile Number</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-phone absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600"></i>
+                                        <input type="tel" id="reg-mobile" readonly class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 text-sm font-bold cursor-not-allowed">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Create Password</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input type="password" id="reg-password" required minlength="4" placeholder="Create strong password" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="btn-complete-signup" class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Create Dukan &amp; Save to Cloud</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DUKANDAR LOGGED-IN DASHBOARD -->
+            <div id="dukandar-dashboard-view" class="hidden space-y-6">
+                <!-- Shopkeeper Profile Banner -->
+                <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-start sm:items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center text-2xl font-extrabold shadow-md shrink-0" id="dash-dukan-avatar">
+                            DK
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 id="dash-dukan-title" class="text-2xl font-extrabold text-slate-900">Dukan Name</h2>
+                                <span class="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check"></i> Active Dukan
+                                </span>
+                            </div>
+                            <div class="text-xs sm:text-sm text-slate-600 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                                <span><i class="fa-solid fa-user text-slate-400 mr-1"></i> <strong id="dash-owner-name">Owner</strong></span>
+                                <span><i class="fa-solid fa-phone text-slate-400 mr-1"></i> +91 <span id="dash-owner-mobile"></span></span>
+                                <span><i class="fa-solid fa-envelope text-slate-400 mr-1"></i> <span id="dash-owner-gmail"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="window.logoutDukandar()" class="self-start sm:self-center px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border border-rose-200">
+                        <i class="fa-solid fa-power-off"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+
+                <!-- Dashboard Grid: Add Product + Product List -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Add Product Card -->
+                    <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-200 h-fit">
+                        <h3 class="text-lg font-extrabold text-slate-900 mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-plus text-indigo-600"></i> Add Product to Dukan
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-5">Items added here are immediately visible to customers in the Customer Portal.</p>
+
+                        <form onsubmit="window.handleAddProduct(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Product Name</label>
+                                <input type="text" id="prod-name" required placeholder="e.g. Aashirvaad Atta 5kg" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Price (₹)</label>
+                                    <input type="number" id="prod-price" required min="1" placeholder="e.g. 240" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Category</label>
+                                    <select id="prod-category" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <option value="Grocery">Grocery</option>
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Clothing">Clothing</option>
+                                        <option value="Dairy & Bakery">Dairy &amp; Bakery</option>
+                                        <option value="Snacks">Snacks</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-100 transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Publish Product to Customer Portal</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- My Dukan Products List -->
+                    <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-md border border-slate-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-900">My Dukan Inventory</h3>
+                                <p class="text-xs text-slate-500">Manage products listed under your shop</p>
+                            </div>
+                            <span id="dukandar-prod-count" class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">0 Items</span>
+                        </div>
+
+                        <div id="dukandar-products-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ==========================================
+             3. ADMIN PORTAL (LOGIN & CHANGE PASSWORD)
+             ========================================== -->
+        <section id="portal-admin" class="portal-section hidden">
+            
+            <!-- Admin Login View -->
+            <div id="admin-login-view" class="max-w-md mx-auto my-6">
+                <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-8 space-y-6">
+                    <div class="text-center space-y-2">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center mx-auto text-2xl shadow-lg">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Admin Portal Login</h2>
+                        <p class="text-xs text-slate-500">Enter the administrator password to manage Dukandars &amp; security settings.</p>
+                    </div>
+
+                    <!-- Default Password Hint Box -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
+                        <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 text-sm"></i>
+                        <div>
+                            <span class="font-bold">Initial Default Password:</span> <code class="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold">admin123</code>
+                            <p class="text-[11px] text-amber-700 mt-0.5">Once you change the password inside the portal, your new password is saved in the cloud database.</p>
+                        </div>
+                    </div>
+
+                    <form onsubmit="window.handleAdminLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Admin Password</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="password" id="admin-login-password" required placeholder="Enter Admin Password" class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-800">
+                                <button type="button" onclick="window.togglePasswordVisibility('admin-login-password')" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-unlock-keyhole"></i>
+                            <span>Access Admin Dashboard</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Admin Logged-In Dashboard -->
+            <div id="admin-dashboard-view" class="hidden space-y-6">
+                <!-- Admin Top Header -->
+                <div class="bg-slate-900 text-white rounded-3xl p-6 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 text-xl">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-extrabold">System Administrator Control Panel</h2>
+                            <p class="text-xs text-slate-400">Real-time oversight of all registered Dukandars &amp; security credentials</p>
+                        </div>
+                    </div>
+                    <button onclick="window.logoutAdmin()" class="self-start sm:self-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Lock Admin Portal</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- CHANGE ADMIN PASSWORD USING OLD PASSWORD -->
+                    <div class="bg-white rounded-3xl p-6 shadow-md border border-slate-200 h-fit">
+                        <div class="flex items-center gap-2.5 mb-1">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                <i class="fa-solid fa-key"></i>
+                            </div>
+                            <h3 class="text-lg font-extrabold text-slate-900">Change Admin Password</h3>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-5">Verify your old password to update the administrator login password.</p>
+
+                        <form id="form-admin-change-pass" onsubmit="window.handleChangeAdminPassword(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Old Password</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock-open absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="password" id="admin-old-password" required placeholder="Enter current password" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">New Password</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="password" id="admin-new-password" required minlength="4" placeholder="Enter new password" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Confirm New Password</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-check-double absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="password" id="admin-confirm-password" required minlength="4" placeholder="Re-enter new password" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-100 transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <span>Update Password</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- ALL REGISTERED DUKANDARS TABLE IN FIREBASE -->
+                    <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-md border border-slate-200 overflow-hidden flex flex-col">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                                    <i class="fa-solid fa-database text-indigo-600"></i> Registered Dukandars in Database
+                                </h3>
+                                <p class="text-xs text-slate-500">Live list of all shopkeepers who signed up via Mobile &amp; Virtual OTP</p>
+                            </div>
+                            <span id="admin-dukandar-count" class="self-start sm:self-center text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">0 Registered</span>
+                        </div>
+
+                        <div class="overflow-x-auto -mx-6 px-6">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                        <th class="py-3 pr-4">Dukan &amp; Owner</th>
+                                        <th class="py-3 px-4">Mobile No.</th>
+                                        <th class="py-3 px-4">Gmail</th>
+                                        <th class="py-3 pl-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-dukandars-tbody" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <div><strong>BazaarHub Multi-Portal System</strong> — Admin, Dukandar &amp; Customer Portals</div>
+            <div class="flex items-center gap-4">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-bolt text-amber-500"></i> Instant Virtual OTP</span>
+                <span class="flex items-center gap-1"><i class="fa-solid fa-cloud text-indigo-500"></i> Real-Time Cloud Sync</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK & Application Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getDatabase, ref as rtdbRef, set as rtdbSet, push as rtdbPush, remove as rtdbRemove, onValue as rtdbOnValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // =====================================================
+        // USER CUSTOM FIREBASE CONFIGURATION
+        // =====================================================
+        const customFirebaseConfig = {
+            apiKey: "AIzaSyA8JTuMKKJiQLR6IDwv8Z7NdfuPZgWo9jM",
+            authDomain: "adarsh-seva-tech.firebaseapp.com",
+            databaseURL: "https://adarsh-seva-tech-default-rtdb.firebaseio.com",
+            projectId: "adarsh-seva-tech",
+            storageBucket: "adarsh-seva-tech.firebasestorage.app",
+            messagingSenderId: "260918056735",
+            appId: "1:260918056735:web:00d719fa3426559aeb822a"
+        };
+
+        // =====================================================
+        // STATE & GLOBAL VARIABLES
+        // =====================================================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'adarsh-seva-tech-bazaar';
+        let db = null;
+        let rtdb = null;
+        let auth = null;
+        let currentUser = null;
+        let useRtdbPrimary = false;
+
+        // Data Caches synced from Firebase
+        let dukandarsList = [];
+        let productsList = [];
+        let adminPasswordInCloud = 'admin123'; // Default initial password
+
+        // Session States
+        let loggedInDukandar = null;
+        let isAdminLoggedIn = false;
+        let generatedVirtualOtp = null;
+        let pendingSignupMobile = '';
+        let selectedCustomerShopFilter = 'all';
+
+        // =====================================================
+        // UI HELPER: CUSTOM TOAST NOTIFICATIONS (NO ALERTS)
+        // =====================================================
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colorMap = {
+                success: 'bg-emerald-600 text-white border-emerald-700',
+                error: 'bg-rose-600 text-white border-rose-700',
+                warning: 'bg-amber-500 text-white border-amber-600',
+                info: 'bg-slate-900 text-white border-slate-700'
+            };
+            const iconMap = {
+                success: 'fa-circle-check',
+                error: 'fa-triangle-exclamation',
+                warning: 'fa-circle-exclamation',
+                info: 'fa-bell'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border ${colorMap[type] || colorMap.info} text-xs sm:text-sm font-semibold animate-slide-down transition-all`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconMap[type] || iconMap.info} text-base shrink-0"></i>
+                <span class="flex-grow leading-snug">${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+
+        window.togglePasswordVisibility = function(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.type = input.type === 'password' ? 'text' : 'password';
+        };
+
+        // =====================================================
+        // FIREBASE INITIALIZATION & REAL-TIME LISTENERS
+        // =====================================================
+        async function initFirebase() {
+            const banner = document.getElementById('connection-banner');
+            try {
+                // Prioritize the user's provided adarsh-seva-tech Firebase configuration
+                const firebaseConfig = customFirebaseConfig;
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                rtdb = getDatabase(app);
+
+                // Attempt anonymous auth if enabled in user's Firebase console, otherwise continue directly
+                try {
+                    await signInAnonymously(auth);
+                    currentUser = auth.currentUser || { uid: 'adarsh-seva-tech-user' };
+                } catch (authErr) {
+                    console.warn("Anonymous Auth not enabled in console, connecting directly to DB:", authErr.message);
+                    currentUser = { uid: 'adarsh-seva-tech-direct-user' };
+                }
+
+                banner.className = "bg-emerald-50 border-b border-emerald-200 px-4 py-1.5 text-center text-xs text-emerald-800 flex items-center justify-center gap-2";
+                banner.innerHTML = `<i class="fa-solid fa-cloud-check text-emerald-600"></i> <span>Connected to <strong>adarsh-seva-tech</strong> Real-Time Firebase Database</span>`;
+
+                setupRealtimeListeners();
+            } catch (err) {
+                console.error("Firebase init error:", err);
+                banner.className = "bg-rose-50 border-b border-rose-200 px-4 py-1.5 text-center text-xs text-rose-800 flex items-center justify-center gap-2";
+                banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span>Connection error: ${err.message}</span>`;
+                renderAllViews();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            // 1. Setup Realtime Database (RTDB) Listeners using user's databaseURL
+            if (rtdb) {
+                const adminRtdbRef = rtdbRef(rtdb, `bazaarhub/admin_config`);
+                rtdbOnValue(adminRtdbRef, (snap) => {
+                    useRtdbPrimary = true;
+                    if (snap.exists() && snap.val().password) {
+                        adminPasswordInCloud = snap.val().password;
+                    } else {
+                        rtdbSet(adminRtdbRef, { password: 'admin123', updatedAt: Date.now() }).catch(() => {});
+                    }
+                }, (err) => console.warn("RTDB admin listener:", err.message));
+
+                const dukandarsRtdbRef = rtdbRef(rtdb, `bazaarhub/dukandars`);
+                rtdbOnValue(dukandarsRtdbRef, (snap) => {
+                    useRtdbPrimary = true;
+                    const data = snap.val() || {};
+                    const list = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    dukandarsList = list;
+
+                    if (loggedInDukandar) {
+                        const updatedSelf = dukandarsList.find(d => d.mobile === loggedInDukandar.mobile);
+                        if (updatedSelf) loggedInDukandar = updatedSelf;
+                    }
+                    renderAllViews();
+                }, (err) => console.warn("RTDB dukandars listener:", err.message));
+
+                const productsRtdbRef = rtdbRef(rtdb, `bazaarhub/products`);
+                rtdbOnValue(productsRtdbRef, (snap) => {
+                    useRtdbPrimary = true;
+                    const data = snap.val() || {};
+                    const list = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    productsList = list;
+                    renderAllViews();
+                }, (err) => console.warn("RTDB products listener:", err.message));
+            }
+
+            // 2. Also attach Firestore Listeners so data syncs whether user uses Firestore or Realtime DB
+            if (db) {
+                const adminDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'portal_settings', 'admin_config');
+                onSnapshot(adminDocRef, async (snap) => {
+                    if (useRtdbPrimary) return;
+                    if (snap.exists()) {
+                        adminPasswordInCloud = snap.data().password || 'admin123';
+                    } else {
+                        await setDoc(adminDocRef, { password: 'admin123', updatedAt: Date.now() }).catch(() => {});
+                    }
+                }, (err) => console.warn("Firestore Admin config note:", err.message));
+
+                const dukandarsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'dukandars');
+                onSnapshot(dukandarsColRef, (snapshot) => {
+                    if (useRtdbPrimary) return;
+                    const list = [];
+                    snapshot.forEach((docSnap) => {
+                        list.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    dukandarsList = list;
+
+                    if (loggedInDukandar) {
+                        const updatedSelf = dukandarsList.find(d => d.mobile === loggedInDukandar.mobile);
+                        if (updatedSelf) loggedInDukandar = updatedSelf;
+                    }
+                    renderAllViews();
+                }, (err) => console.warn("Firestore Dukandars note:", err.message));
+
+                const productsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
+                onSnapshot(productsColRef, (snapshot) => {
+                    if (useRtdbPrimary) return;
+                    const list = [];
+                    snapshot.forEach((docSnap) => {
+                        list.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    productsList = list;
+                    renderAllViews();
+                }, (err) => console.warn("Firestore Products note:", err.message));
+            }
+        }
+
+        // =====================================================
+        // PORTAL NAVIGATION (CUSTOMER / DUKANDAR / ADMIN)
+        // =====================================================
+        window.switchPortal = function(portalName) {
+            const sections = ['customer', 'dukandar', 'admin'];
+            sections.forEach(sec => {
+                const el = document.getElementById(`portal-${sec}`);
+                const tab = document.getElementById(`tab-${sec}`);
+                if (sec === portalName) {
+                    el.classList.remove('hidden');
+                    tab.className = "portal-tab flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white text-indigo-600 shadow-sm";
+                } else {
+                    el.classList.add('hidden');
+                    tab.className = "portal-tab flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 hover:text-slate-900";
+                }
+            });
+            renderAllViews();
+        };
+
+        // =====================================================
+        // DUKANDAR PORTAL: SIGNUP (WITH VIRTUAL OTP) & LOGIN
+        // =====================================================
+        window.switchDukandarAuthMode = function(mode) {
+            const loginForm = document.getElementById('form-dukandar-login');
+            const signupForm = document.getElementById('form-dukandar-signup');
+            const btnLogin = document.getElementById('btn-mode-login');
+            const btnSignup = document.getElementById('btn-mode-signup');
+
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                btnLogin.className = "py-2.5 rounded-2xl text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                btnSignup.className = "py-2.5 rounded-2xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900";
+            } else {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                btnSignup.className = "py-2.5 rounded-2xl text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                btnLogin.className = "py-2.5 rounded-2xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900";
+                window.resetSignupToStep1();
+            }
+        };
+
+        function updateSignupStepIndicators(activeStep) {
+            for (let i = 1; i <= 3; i++) {
+                const ind = document.getElementById(`step-ind-${i}`);
+                const circle = ind.querySelector('span');
+                if (i < activeStep) {
+                    ind.className = "flex items-center gap-1.5 text-emerald-600";
+                    circle.className = "w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs";
+                    circle.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                } else if (i === activeStep) {
+                    ind.className = "flex items-center gap-1.5 text-indigo-600";
+                    circle.className = "w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs";
+                    circle.textContent = i;
+                } else {
+                    ind.className = "flex items-center gap-1.5 text-slate-400";
+                    circle.className = "w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs";
+                    circle.textContent = i;
+                }
+            }
+        }
+
+        window.resetSignupToStep1 = function() {
+            generatedVirtualOtp = null;
+            pendingSignupMobile = '';
+            document.getElementById('signup-step-1').classList.remove('hidden');
+            document.getElementById('signup-step-2').classList.add('hidden');
+            document.getElementById('signup-step-3').classList.add('hidden');
+            updateSignupStepIndicators(1);
+        };
+
+        // STEP 1: Generate 4-Digit Virtual OTP
+        window.sendVirtualOtp = function(event) {
+            event.preventDefault();
+            const mobile = document.getElementById('signup-mobile-input').value.trim();
+            if (!/^[0-9]{10}$/.test(mobile)) {
+                window.showToast("Please enter a valid 10-digit mobile number.", "error");
+                return;
+            }
+
+            // Check if mobile number is already registered
+            const existing = dukandarsList.find(d => d.mobile === mobile);
+            if (existing) {
+                window.showToast("This mobile number is already registered! Please login.", "warning");
+                window.switchDukandarAuthMode('login');
+                document.getElementById('login-dukandar-mobile').value = mobile;
+                return;
+            }
+
+            // Generate random 4-digit Virtual OTP
+            generatedVirtualOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            pendingSignupMobile = mobile;
+
+            // Populate Step 2 UI
+            document.getElementById('display-otp-mobile').textContent = mobile;
+            document.getElementById('virtual-otp-banner-code').textContent = generatedVirtualOtp;
+            document.getElementById('signup-otp-input').value = '';
+
+            document.getElementById('signup-step-1').classList.add('hidden');
+            document.getElementById('signup-step-2').classList.remove('hidden');
+            updateSignupStepIndicators(2);
+
+            window.showToast(`Virtual OTP for +91 ${mobile} is ${generatedVirtualOtp}`, "success");
+        };
+
+        // STEP 2: Verify 4-Digit Virtual OTP
+        window.verifyVirtualOtp = function(event) {
+            event.preventDefault();
+            const enteredOtp = document.getElementById('signup-otp-input').value.trim();
+            if (enteredOtp !== generatedVirtualOtp) {
+                window.showToast("Invalid 4-digit OTP! Please check the Virtual SMS box above.", "error");
+                return;
+            }
+
+            // Move to Step 3: Fill Details
+            document.getElementById('reg-mobile').value = pendingSignupMobile;
+            document.getElementById('signup-step-2').classList.add('hidden');
+            document.getElementById('signup-step-3').classList.remove('hidden');
+            updateSignupStepIndicators(3);
+            window.showToast("Mobile Number Verified! Please complete your Dukan details.", "success");
+        };
+
+        // STEP 3: Save Dukandar Details to Firebase & Login
+        window.completeDukandarSignup = async function(event) {
+            event.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const dukanName = document.getElementById('reg-dukan-name').value.trim();
+            const gmail = document.getElementById('reg-gmail').value.trim();
+            const mobile = document.getElementById('reg-mobile').value.trim();
+            const password = document.getElementById('reg-password').value;
+
+            if (!name || !dukanName || !gmail || !mobile || !password) {
+                window.showToast("Please fill all required fields.", "error");
+                return;
+            }
+
+            const submitBtn = document.getElementById('btn-complete-signup');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving to Firebase...</span>`;
+
+            const newDukandarData = {
+                name,
+                dukanName,
+                gmail,
+                mobile,
+                password,
+                createdAt: Date.now()
+            };
+
+            try {
+                let savedToCloud = false;
+                if (rtdb) {
+                    await rtdbSet(rtdbRef(rtdb, `bazaarhub/dukandars/${mobile}`), newDukandarData).then(() => { savedToCloud = true; }).catch((e) => console.warn(e));
+                }
+                if (db) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'dukandars', mobile);
+                    await setDoc(docRef, newDukandarData).then(() => { savedToCloud = true; }).catch((e) => console.warn(e));
+                }
+                if (!savedToCloud) {
+                    dukandarsList.unshift({ id: mobile, ...newDukandarData });
+                }
+
+                // Auto-login newly registered Dukandar
+                loggedInDukandar = newDukandarData;
+                document.getElementById('signup-step-3').reset();
+                window.resetSignupToStep1();
+                renderAllViews();
+                window.showToast(`Congratulations ${name}! Your Dukan "${dukanName}" is saved in Firebase.`, "success");
+            } catch (err) {
+                console.error("Error saving Dukandar:", err);
+                window.showToast("Error saving data to cloud. Please check Firebase Rules.", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Create Dukan & Save to Cloud</span>`;
+            }
+        };
+
+        // DUKANDAR LOGIN WITH MOBILE & PASSWORD
+        window.handleDukandarLogin = function(event) {
+            event.preventDefault();
+            const mobile = document.getElementById('login-dukandar-mobile').value.trim();
+            const password = document.getElementById('login-dukandar-password').value;
+
+            const foundDukandar = dukandarsList.find(d => d.mobile === mobile);
+            if (!foundDukandar) {
+                window.showToast("No Dukandar found with this mobile number! Please Signup first.", "error");
+                return;
+            }
+
+            if (foundDukandar.password !== password) {
+                window.showToast("Incorrect password! Please try again.", "error");
+                return;
+            }
+
+            loggedInDukandar = foundDukandar;
+            document.getElementById('form-dukandar-login').reset();
+            renderAllViews();
+            window.showToast(`Welcome back, ${foundDukandar.name} (${foundDukandar.dukanName})!`, "success");
+        };
+
+        window.logoutDukandar = function() {
+            loggedInDukandar = null;
+            window.switchDukandarAuthMode('login');
+            renderAllViews();
+            window.showToast("Logged out from Dukandar Portal.", "info");
+        };
+
+        // ADD PRODUCT BY LOGGED-IN DUKANDAR
+        window.handleAddProduct = async function(event) {
+            event.preventDefault();
+            if (!loggedInDukandar) return;
+
+            const prodName = document.getElementById('prod-name').value.trim();
+            const prodPrice = Number(document.getElementById('prod-price').value);
+            const prodCategory = document.getElementById('prod-category').value;
+
+            const newProd = {
+                name: prodName,
+                price: prodPrice,
+                category: prodCategory,
+                dukanName: loggedInDukandar.dukanName,
+                dukandarName: loggedInDukandar.name,
+                dukandarMobile: loggedInDukandar.mobile,
+                createdAt: Date.now()
+            };
+
+            try {
+                let savedToCloud = false;
+                if (rtdb) {
+                    const newProdRef = rtdbPush(rtdbRef(rtdb, `bazaarhub/products`));
+                    await rtdbSet(newProdRef, newProd).then(() => { savedToCloud = true; }).catch((e) => console.warn(e));
+                }
+                if (db) {
+                    const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
+                    await addDoc(colRef, newProd).then(() => { savedToCloud = true; }).catch((e) => console.warn(e));
+                }
+                if (!savedToCloud) {
+                    productsList.unshift({ id: 'local_' + Date.now(), ...newProd });
+                }
+                event.target.reset();
+                renderAllViews();
+                window.showToast(`"${prodName}" added to your Dukan & Customer Portal!`, "success");
+            } catch (err) {
+                console.error("Add product error:", err);
+                window.showToast("Could not add product. Try again.", "error");
+            }
+        };
+
+        window.deleteProduct = async function(prodId) {
+            try {
+                if (rtdb) {
+                    await rtdbRemove(rtdbRef(rtdb, `bazaarhub/products/${prodId}`)).catch(() => {});
+                }
+                if (db) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', prodId)).catch(() => {});
+                }
+                productsList = productsList.filter(p => p.id !== prodId);
+                renderAllViews();
+                window.showToast("Product removed from Dukan.", "info");
+            } catch (err) {
+                console.error("Delete product error:", err);
+            }
+        };
+
+        // =====================================================
+        // ADMIN PORTAL: LOGIN & CHANGE PASSWORD USING OLD PASSWORD
+        // =====================================================
+        window.handleAdminLogin = function(event) {
+            event.preventDefault();
+            const enteredPass = document.getElementById('admin-login-password').value;
+
+            if (enteredPass === adminPasswordInCloud) {
+                isAdminLoggedIn = true;
+                document.getElementById('admin-login-password').value = '';
+                renderAllViews();
+                window.showToast("Admin Login Successful!", "success");
+            } else {
+                window.showToast("Invalid Admin Password! Please check and try again.", "error");
+            }
+        };
+
+        window.handleChangeAdminPassword = async function(event) {
+            event.preventDefault();
+            const oldPass = document.getElementById('admin-old-password').value;
+            const newPass = document.getElementById('admin-new-password').value;
+            const confirmPass = document.getElementById('admin-confirm-password').value;
+
+            if (oldPass !== adminPasswordInCloud) {
+                window.showToast("Old Password is incorrect! Cannot change password.", "error");
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                window.showToast("New Password and Confirm Password do not match!", "warning");
+                return;
+            }
+
+            try {
+                if (rtdb) {
+                    await rtdbSet(rtdbRef(rtdb, `bazaarhub/admin_config`), {
+                        password: newPass,
+                        updatedAt: Date.now()
+                    }).catch(() => {});
+                }
+                if (db) {
+                    const adminDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'portal_settings', 'admin_config');
+                    await setDoc(adminDocRef, {
+                        password: newPass,
+                        updatedAt: Date.now()
+                    }).catch(() => {});
+                }
+                adminPasswordInCloud = newPass;
+                document.getElementById('form-admin-change-pass').reset();
+                window.showToast("Admin Password Changed & Saved to Firebase! Use the new password next time.", "success");
+            } catch (err) {
+                console.error("Password update error:", err);
+                window.showToast("Failed to update password in cloud.", "error");
+            }
+        };
+
+        window.deleteDukandarByAdmin = async function(dukandarId, dukanName) {
+            try {
+                if (rtdb) {
+                    await rtdbRemove(rtdbRef(rtdb, `bazaarhub/dukandars/${dukandarId}`)).catch(() => {});
+                }
+                if (db) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dukandars', dukandarId)).catch(() => {});
+                }
+                dukandarsList = dukandarsList.filter(d => d.id !== dukandarId && d.mobile !== dukandarId);
+                renderAllViews();
+                if (loggedInDukandar && loggedInDukandar.mobile === dukandarId) {
+                    loggedInDukandar = null;
+                }
+                window.showToast(`Removed Dukan "${dukanName}" from database.`, "info");
+            } catch (err) {
+                console.error("Delete dukandar error:", err);
+            }
+        };
+
+        window.logoutAdmin = function() {
+            isAdminLoggedIn = false;
+            renderAllViews();
+            window.showToast("Admin Portal Locked.", "info");
+        };
+
+        // =====================================================
+        // CUSTOMER PORTAL INTERACTIONS
+        // =====================================================
+        window.filterByDukan = function(mobile) {
+            selectedCustomerShopFilter = mobile;
+            const selectEl = document.getElementById('customer-shop-filter');
+            if (selectEl) selectEl.value = mobile;
+            window.renderCustomerView();
+        };
+
+        window.resetCustomerFilter = function() {
+            selectedCustomerShopFilter = 'all';
+            const selectEl = document.getElementById('customer-shop-filter');
+            if (selectEl) selectEl.value = 'all';
+            document.getElementById('customer-search').value = '';
+            window.renderCustomerView();
+        };
+
+        window.orderProductNow = function(prodName, dukanName, price) {
+            window.showToast(`Order placed for "${prodName}" (₹${price}) from ${dukanName}!`, "success");
+        };
+
+        // =====================================================
+        // RENDER FUNCTIONS FOR ALL 3 PORTALS
+        // =====================================================
+        function renderAllViews() {
+            window.renderCustomerView();
+            renderDukandarView();
+            renderAdminView();
+        }
+
+        // 1. Render Customer Portal
+        window.renderCustomerView = function() {
+            const searchQuery = (document.getElementById('customer-search')?.value || '').toLowerCase().trim();
+            const dropdownFilter = document.getElementById('customer-shop-filter')?.value || 'all';
+            selectedCustomerShopFilter = dropdownFilter;
+
+            // Update Shop Dropdown Options
+            const selectEl = document.getElementById('customer-shop-filter');
+            if (selectEl) {
+                const currentVal = selectEl.value;
+                selectEl.innerHTML = `<option value="all">All Registered Dukans (${dukandarsList.length})</option>` +
+                    dukandarsList.map(d => `<option value="${d.mobile}">${d.dukanName} — ${d.name}</option>`).join('');
+                if ([...selectEl.options].some(o => o.value === currentVal)) {
+                    selectEl.value = currentVal;
+                }
+            }
+
+            // Show/hide reset filter button
+            const resetBtn = document.getElementById('reset-filter-btn');
+            if (resetBtn) {
+                if (selectedCustomerShopFilter !== 'all' || searchQuery !== '') {
+                    resetBtn.classList.remove('hidden');
+                } else {
+                    resetBtn.classList.add('hidden');
+                }
+            }
+
+            // Render Verified Dukans Grid
+            document.getElementById('customer-dukan-count').textContent = `${dukandarsList.length} ${dukandarsList.length === 1 ? 'Shop' : 'Shops'}`;
+            const shopsGrid = document.getElementById('customer-shops-grid');
+
+            if (dukandarsList.length === 0) {
+                shopsGrid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-8 text-center border border-dashed border-slate-300">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3 text-xl">
+                            <i class="fa-solid fa-store-slash"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800">No Dukandars Registered Yet</h3>
+                        <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">Switch to the <strong>Dukandar Portal</strong> tab above and sign up using a mobile number &amp; 4-digit virtual OTP to create your first shop!</p>
+                        <button onclick="window.switchPortal('dukandar'); window.switchDukandarAuthMode('signup');" class="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition">
+                            + Register First Dukan Now
+                        </button>
+                    </div>
+                `;
+            } else {
+                shopsGrid.innerHTML = dukandarsList.map(d => {
+                    const isSelected = selectedCustomerShopFilter === d.mobile;
+                    const shopProdCount = productsList.filter(p => p.dukandarMobile === d.mobile).length;
+                    const initials = (d.dukanName || 'DK').substring(0, 2).toUpperCase();
+                    return `
+                        <div onclick="window.filterByDukan('${d.mobile}')" class="cursor-pointer rounded-2xl p-4 transition-all border ${isSelected ? 'bg-indigo-50/80 border-indigo-500 ring-2 ring-indigo-500/20' : 'bg-white hover:border-indigo-300 border-slate-200'} shadow-sm flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3.5 min-w-0">
+                                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-extrabold flex items-center justify-center shrink-0 shadow-sm">
+                                    ${initials}
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-bold text-slate-900 truncate text-sm sm:text-base">${d.dukanName}</h4>
+                                    <p class="text-xs text-slate-500 truncate"><i class="fa-solid fa-user-tie mr-1"></i>${d.name} • +91 ${d.mobile}</p>
+                                </div>
+                            </div>
+                            <span class="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}">
+                                ${shopProdCount} items
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render Filtered Products Grid
+            const prodGrid = document.getElementById('customer-products-grid');
+            const filteredProducts = productsList.filter(p => {
+                const matchesShop = selectedCustomerShopFilter === 'all' || p.dukandarMobile === selectedCustomerShopFilter;
+                const matchesQuery = !searchQuery ||
+                    (p.name || '').toLowerCase().includes(searchQuery) ||
+                    (p.dukanName || '').toLowerCase().includes(searchQuery) ||
+                    (p.category || '').toLowerCase().includes(searchQuery);
+                return matchesShop && matchesQuery;
+            });
+
+            if (filteredProducts.length === 0) {
+                prodGrid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-8 text-center border border-dashed border-slate-300">
+                        <i class="fa-solid fa-box-open text-3xl text-slate-300 mb-2"></i>
+                        <h4 class="font-bold text-slate-700 text-sm">No Products Found</h4>
+                        <p class="text-xs text-slate-500 mt-1">Logged-in Dukandars can add products from their Dukandar dashboard.</p>
+                    </div>
+                `;
+            } else {
+                prodGrid.innerHTML = filteredProducts.map(p => `
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full border border-purple-200">
+                                    ${p.category || 'General'}
+                                </span>
+                                <span class="text-xs text-slate-400 font-medium truncate">
+                                    <i class="fa-solid fa-store text-indigo-500 mr-1"></i>${p.dukanName}
+                                </span>
+                            </div>
+                            <h3 class="font-bold text-slate-900 text-base leading-snug mb-1">${p.name}</h3>
+                            <p class="text-xs text-slate-500">Seller: ${p.dukandarName} (+91 ${p.dukandarMobile})</p>
+                        </div>
+
+                        <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] uppercase text-slate-400 font-bold block">Price</span>
+                                <span class="text-lg font-extrabold text-slate-900">₹${p.price}</span>
+                            </div>
+                            <button onclick="window.orderProductNow('${p.name.replace(/'/g, "\\'")}', '${p.dukanName.replace(/'/g, "\\'")}', '${p.price}')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-cart-plus"></i>
+                                <span>Buy Now</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        // 2. Render Dukandar Portal
+        function renderDukandarView() {
+            const authView = document.getElementById('dukandar-auth-view');
+            const dashView = document.getElementById('dukandar-dashboard-view');
+
+            if (!loggedInDukandar) {
+                authView.classList.remove('hidden');
+                dashView.classList.add('hidden');
+                return;
+            }
+
+            authView.classList.add('hidden');
+            dashView.classList.remove('hidden');
+
+            // Populate Dukandar Header Info
+            document.getElementById('dash-dukan-avatar').textContent = (loggedInDukandar.dukanName || 'DK').substring(0, 2).toUpperCase();
+            document.getElementById('dash-dukan-title').textContent = loggedInDukandar.dukanName;
+            document.getElementById('dash-owner-name').textContent = loggedInDukandar.name;
+            document.getElementById('dash-owner-mobile').textContent = loggedInDukandar.mobile;
+            document.getElementById('dash-owner-gmail').textContent = loggedInDukandar.gmail;
+
+            // Populate Dukandar's Own Products
+            const myProducts = productsList.filter(p => p.dukandarMobile === loggedInDukandar.mobile);
+            document.getElementById('dukandar-prod-count').textContent = `${myProducts.length} Items`;
+
+            const listEl = document.getElementById('dukandar-products-list');
+            if (myProducts.length === 0) {
+                listEl.innerHTML = `
+                    <div class="col-span-full py-10 text-center border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                        <i class="fa-solid fa-boxes-packing text-2xl mb-2 block"></i>
+                        You haven't added any products to your Dukan yet. Use the form on the left to add items!
+                    </div>
+                `;
+            } else {
+                listEl.innerHTML = myProducts.map(p => `
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex items-center justify-between gap-3">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">${p.category}</span>
+                            <h4 class="font-bold text-slate-900 text-sm mt-1">${p.name}</h4>
+                            <p class="text-sm font-extrabold text-emerald-700 mt-0.5">₹${p.price}</p>
+                        </div>
+                        <button onclick="window.deleteProduct('${p.id}')" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition" title="Delete Product">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 3. Render Admin Portal
+        function renderAdminView() {
+            const loginView = document.getElementById('admin-login-view');
+            const dashView = document.getElementById('admin-dashboard-view');
+
+            if (!isAdminLoggedIn) {
+                loginView.classList.remove('hidden');
+                dashView.classList.add('hidden');
+                return;
+            }
+
+            loginView.classList.add('hidden');
+            dashView.classList.remove('hidden');
+
+            document.getElementById('admin-dukandar-count').textContent = `${dukandarsList.length} Registered`;
+            const tbody = document.getElementById('admin-dukandars-tbody');
+
+            if (dukandarsList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-xs text-slate-400">
+                            No Dukandars registered in the database yet.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = dukandarsList.map(d => `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3.5 pr-4">
+                            <div class="font-bold text-slate-900">${d.dukanName}</div>
+                            <div class="text-xs text-slate-500">Owner: ${d.name}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-xs font-bold text-slate-700">+91 ${d.mobile}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-600">${d.gmail}</td>
+                        <td class="py-3.5 pl-4 text-right">
+                            <button onclick="window.deleteDukandarByAdmin('${d.id || d.mobile}', '${d.dukanName.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition">
+                                <i class="fa-solid fa-trash-can mr-1"></i>Remove
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Start App on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            renderAllViews();
+        });
+    </script>
+</body>
+</html>
